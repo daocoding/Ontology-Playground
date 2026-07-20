@@ -88,7 +88,7 @@
 
     <owl:Class rdf:about="http://example.org/ontology/elements-of-thinking/IntellectualStandard">
         <rdfs:label>IntellectualStandard</rdfs:label>
-        <rdfs:comment>A yardstick applied to any element of any reasoning: clarity, accuracy, precision, relevance, depth, breadth, logic, significance, fairness. Each carries a probe question - could you elaborate? how could we check that? does it follow? - and the probes, not the names, do the work.</rdfs:comment>
+        <rdfs:comment>A yardstick applied to any element of any reasoning. Paul and Elder name nine as essential - clarity, accuracy, precision, relevance, depth, breadth, logic, significance, fairness - and say plainly that the list is a selection, not a fence: among others they name credibility, sufficiency, reliability, practicality. Each standard carries a probe question - could you elaborate? how could we check that? does it follow? - and the probes, not the names, do the work.</rdfs:comment>
         <ont:icon>📏</ont:icon>
         <ont:color>#8E44AD</ont:color>
     </owl:Class>
