@@ -5,29 +5,39 @@ A self-contained, plain-JavaScript animation that explains the
 community ontology to people who have never read an ontology.
 
 The scene is a hand-drawn cutaway of an ordinary software company, Acme
-Cloud. Its rooms are places where work happens: reception, sales, a meeting
-room, the product studio, operations, engineering, IT, support, contracts,
-finance, the mailroom, a server room and an archive. People and agents work in
-every room all the time.
+Cloud. The rooms are where the work happens: the Platform team's floor with
+its stand-up board, desks and on-call dashboards, plus product and design, IT
+and security, leadership, sales, a demo room, customer success, support,
+finance and RevOps, reception, the kitchen and the phone booths. Everyone is
+busy, and the screens show what they're doing: code, a pull request with its
+CI checks, a deploy pipeline, the CRM pipeline, a video call, a spec, the
+helpdesk, a RevOps workflow, billing and the audit log. Records travel between
+floors the way they do in real life, as packets up the network riser to the
+cloud where the company's apps run, and back down to someone else's screen.
 
-The tour follows one customer, Dana from Globex, through a day there:
+The tour follows one deal through one day:
 
-1. Dana arrives, and reception prints a LEAD badge.
-2. Sales opens a deal folder and moves it across the pipeline board.
-3. Dana, a sales rep and a note-taking agent meet.
-4. Dana signs, the badge becomes CUSTOMER, and a subscription card drops to Finance.
-5. A rule in Operations creates the onboarding tasks.
-6. Engineering puts them on the project board.
-7. IT hands the agent a key.
-8. At month end, an invoice goes out and a payment comes back.
-9. Dana emails Support, and a view is saved for Globex.
-10. The archive tape has recorded every step.
+| Time | What happens |
+|---|---|
+| 09:10 | Sales demos to Dana at Globex on a video call: "We can't sign without SSO." |
+| 09:30 | The deal moves to Proposal in the CRM, and sales asks #product about SSO. |
+| 09:45 | The PM writes a spec and creates the SSO project and tickets. |
+| 10:00 | Stand-up: Kai takes one ticket, and the coding agent agent-7 takes another. |
+| 11:30 | agent-7 opens a PR, CI goes green, Kai reviews, and it merges. |
+| 12:30 | Lunch: Platform, Sales and Support at one table. |
+| 13:15 | IT approves agent-7's request for production deploy rights. |
+| 14:30 | SSO ships, Globex signs, the deal moves to Won, and the gong rings. |
+| 14:31 | A RevOps workflow starts billing and creates onboarding tasks. |
+| 15:00 | Finance sees the subscription, the invoice and the payment. |
+| 16:00 | Dana's first support ticket, and a saved view for Globex. |
+| 17:30 | Security reads the day back from the audit log. |
 
 As things happen, small tags name what the software keeps track of, such as
-`Person · Dana`, `Deal · stage: PROPOSAL` or `Permission · EDIT`, and dashed
-arrows show the relationships between them. The caption tells the story first,
-then explains it under **In the model**. The last stop fades the building into
-the ontology graph itself.
+`Person · Dana`, `Deal · stage: Won`, `Agent · agent-7` or
+`Permission · deploy · production`. Dashed arrows show the relationships
+between them. The caption tells the story first, then explains it under
+**In the model**. The last stop fades the building into the ontology graph
+itself.
 
 Everything is drawn at runtime with the Canvas 2D API. There are no images,
 fonts, libraries or network requests.
@@ -68,5 +78,5 @@ Options, as data attributes or through `ElementsOfSoftware.mount(el, options)`:
 `catalogue/community/daocoding/elements-of-software/ontology.rdf`. The last
 stop and the Map overlay are drawn from these two lists. If the ontology
 changes, update the lists, then the `TOUR` entry and the room function that
-plays out that part of the story (each room's `draw…` function adds its own
-tags and arrows when its stop is active).
+plays out that part of the story. Each room's `draw…` function adds its own
+tags, arrows and network packets while its stop is active.
