@@ -1,13 +1,17 @@
 /*!
- * Elements of Software — an animated cutaway explainer
+ * Elements of Software — a day at a software company, cut open
  *
- * A plain-JavaScript, dependency-free scene that explains the
+ * A plain-JavaScript, dependency-free animation that explains the
  * "Elements of Software" ontology (catalogue/community/daocoding/
- * elements-of-software) to people who have never read an ontology.
- * Every entity type gets a room in a cutaway building; the camera tours
- * the rooms and a caption card names the entity types and relationships
- * the visitor is looking at. The last stop fades the building into the
- * ontology graph itself.
+ * elements-of-software) to people who have never read one.
+ *
+ * The building is an ordinary software company: reception, sales, a
+ * meeting room, operations, engineering, IT, finance, a mailroom, support
+ * and an archive. People and machines work in every room all the time.
+ * The tour follows one customer, Dana, through a day there. As the camera
+ * moves, small tags name the things the software keeps track of (a Person,
+ * a Deal, a Task, an Invoice...), and the caption explains them. The last
+ * stop fades the building into the ontology graph itself.
  *
  * Usage:
  *   <div id="eos-scene" style="height:100vh"></div>
@@ -87,205 +91,180 @@
   var X0 = 180, X1 = 1620;
   var FLOORS = [300, 520, 740, 960, 1180];
   var GROUND = 1180;
+  // floor (walking) line and ceiling line of each storey
+  var FL = { A: 515, B: 735, C: 955, D: 1175 };
+  var CE = { A: 305, B: 525, C: 745, D: 965 };
+  var SH0 = 620, SH1 = 680;           // the lift shaft
 
-  function room(id, name, ent, x, y, w, h, step) {
-    return { id: id, name: name, ent: ent, x: x, y: y, w: w, h: h, step: step };
+  function room(id, name, x, y, w, h, step) {
+    return { id: id, name: name, x: x, y: y, w: w, h: h, step: step };
   }
 
+  // Ordinary departments. `step` is the tour stop a click takes you to.
   var ROOMS = [
-    room('party',   'Party Hall',     'Party',        180,  300, 460, 220, 1),
-    room('role',    'Role Desk',      'Role',         640,  300, 320, 220, 3),
-    room('team',    'Team Room',      'Team',         960,  300, 330, 220, 4),
-    room('perm',    'Permissions',    'Permission',   1290, 300, 330, 220, 14),
-    room('project', 'Projects',       'Project',      180,  520, 300, 220, 5),
-    room('task',    'Task Line',      'Task',         480,  520, 570, 220, 6),
-    room('auto',    'Automation',     'Automation',   1050, 520, 270, 220, 7),
-    room('doc',     'Documents',      'Document',     1320, 520, 300, 220, 8),
-    room('product', 'Products',       'Product',      180,  740, 290, 220, 9),
-    room('deal',    'Deal Pipeline',  'Deal',         470,  740, 570, 220, 10),
-    room('inter',   'Interactions',   'Interaction',  1040, 740, 300, 220, 11),
-    room('view',    'Saved Views',    'SavedView',    1340, 740, 280, 220, 13),
-    room('sub',     'Subscriptions',  'Subscription', 180,  960, 380, 220, 12),
-    room('inv',     'Invoices',       'Invoice',      560,  960, 340, 220, 12),
-    room('pay',     'Payments',       'Payment',      900,  960, 320, 220, 12),
-    room('lobby',   'Lobby',          null,           1220, 960, 400, 220, 0),
-    room('audit',   'Audit Vault',    'AuditEvent',   300,  1196, 1200, 170, 15)
+    room('server',    'Server room',    180,  300, 440, 220, 7),
+    room('eng',       'Engineering',    680,  300, 560, 220, 6),
+    room('it',        'IT & Security',  1240, 300, 380, 220, 7),
+    room('studio',    'Product studio', 180,  520, 440, 220, 2),
+    room('ops',       'Operations',     680,  520, 560, 220, 5),
+    room('support',   'Support',        1240, 520, 380, 220, 9),
+    room('sales',     'Sales',          180,  740, 440, 220, 2),
+    room('meeting',   'Meeting room',   680,  740, 420, 220, 3),
+    room('contracts', 'Contracts',      1100, 740, 520, 220, 4),
+    room('lobby',     'Reception',      180,  960, 440, 220, 1),
+    room('mail',      'Mailroom',       680,  960, 420, 220, 8),
+    room('finance',   'Finance',        1100, 960, 520, 220, 8),
+    room('lift',      'Lift',           620,  300, 60,  880, 1),
+    room('archive',   'Archive',        300,  1196, 1200, 170, 10)
   ];
 
-  // Where each entity type "lives" in the drawing, for the graph overlay.
+  // Where each entity type "lives" in the building, for the graph overlay.
   var ANCHORS = {
-    Party: [410, 352], Person: [292, 470], Organization: [410, 470], Agent: [528, 470],
-    Role: [790, 380], Team: [1125, 370], Permission: [1440, 380],
-    Project: [320, 610], Task: [760, 650], Automation: [1185, 625], Document: [1470, 620],
-    Product: [325, 845], Deal: [755, 850], Interaction: [1190, 840], SavedView: [1480, 830],
-    Subscription: [370, 1075], Invoice: [730, 1075], Payment: [1060, 1075],
+    Party: [650, 640], Person: [262, 1078], Role: [410, 1040], Organization: [560, 1078],
+    Agent: [400, 400], Team: [1050, 352], Project: [850, 400], Permission: [1430, 400],
+    Product: [330, 600], Task: [900, 640], Automation: [1150, 615], SavedView: [1420, 630],
+    Deal: [330, 830], Interaction: [800, 830], Document: [1010, 860],
+    Subscription: [1510, 1060], Invoice: [1270, 1075], Payment: [860, 1075],
     AuditEvent: [900, 1280]
   };
 
   // ---------------------------------------------------------------------------
-  // The tour
+  // The tour: one customer, one day
   // ---------------------------------------------------------------------------
-  // rect: camera target [x, y, w, h]. ents: entity chips. rels: relation chips;
-  // a rel with `pts` [x1, y1, x2, y2] (and optional bend) is also drawn in the
-  // scene as an arrow between two things you can see.
+  // rect: camera target [x, y, w, h]. story: what happens. note: what the
+  // software records. ents / rels: chips under "In the model". A rel with
+  // `pts` [x1, y1, x2, y2] or `dyn` (a moving endpoint) is also drawn in the
+  // scene as an arrow.
 
   var TOUR = [
     {
       rect: [120, 40, 1560, 1340],
-      title: 'A software business, cut open',
-      body: 'CRMs, project tools and billing systems look different on the surface, but they are built from the same few kinds of thing. This building gives each one a room. Follow the tour, or click any room to visit it.',
+      title: 'A day at a software company',
+      story: 'This is Acme Cloud, cut open. People and machines are at work in every room: selling, building, answering questions, sending invoices. Follow one customer, Dana, through a day here.',
+      note: 'Every business app, whether a CRM, a project tool or a billing system, keeps track of the same few kinds of thing. Watch for the little tags.',
       ents: [], rels: []
     },
     {
-      rect: [180, 296, 470, 228],
-      title: 'Party: anyone who can act',
-      body: 'A person, a company, a piece of software that does work. Rather than separate tables for users, contacts and companies, all three are kinds of one thing, a Party. Anything "someone" can do is attached to Party just once.',
-      ents: ['Party', 'Person', 'Organization', 'Agent'],
-      rels: [
-        { from: 'Person', label: 'is a', to: 'Party', pts: [294, 440, 345, 374], bend: 10 },
-        { from: 'Organization', label: 'is a', to: 'Party', pts: [410, 426, 410, 374], bend: 0 },
-        { from: 'Agent', label: 'is a', to: 'Party', pts: [526, 436, 475, 374], bend: -10 }
-      ]
-    },
-    {
-      rect: [420, 320, 240, 205],
-      title: 'Agent: software with a boss',
-      body: 'The robot is a Party too. It can be given tasks, send messages and appear in the activity log, the same way a person does. But every agent is operated by someone, so there is always a named human or company answerable for it.',
-      ents: ['Agent', 'Party'],
-      rels: [{ from: 'Agent', label: 'operated by', to: 'Party', pts: [536, 446, 588, 452], bend: -34 }]
-    },
-    {
-      rect: [640, 296, 330, 228],
-      title: 'Role: a badge, worn for a while',
-      body: 'Watch the visitor\'s badge. Lead, then Customer, then Vendor somewhere else, but always the same person. Lead, Customer, Vendor and Employee are roles a Party plays at an Organization, not separate kinds of people. Treating them as separate kinds is the most common mistake in business software.',
-      ents: ['Role', 'Party', 'Organization'],
+      rect: [130, 955, 570, 230],
+      title: 'Dana arrives',
+      story: 'Dana works at Globex and has come to see Acme\'s product. Reception prints a visitor badge that says LEAD, and Dana heads for the lift.',
+      note: 'Dana is a Person and Globex is an Organization. Both are Parties, meaning anyone who can act. LEAD is not a kind of person: it is a Role that Dana plays at Acme, for now.',
+      ents: ['Person', 'Organization', 'Party', 'Role'],
       rels: [
         { from: 'Party', label: 'plays', to: 'Role', dyn: 'plays' },
         { from: 'Role', label: 'at', to: 'Organization', dyn: 'at' }
       ]
     },
     {
-      rect: [960, 296, 330, 228],
-      title: 'Team: who owns the work',
-      body: 'People are members of teams, and teams are part of an organization. A Person can sit in several teams without being copied.',
-      ents: ['Team', 'Person', 'Organization'],
+      rect: [175, 515, 650, 450],
+      title: 'A deal is opened',
+      story: 'On the sales floor, Ravi starts a folder for Globex and the Pro plan. As the talks go well, the same folder moves across the board: Lead, Qualified, Proposal. Upstairs, the product studio designs the plans.',
+      note: 'The folder is a Deal, with Globex, for a Product. It never turns into a different thing as it moves. Its stage is just a property.',
+      ents: ['Deal', 'Product', 'Party'],
       rels: [
-        { from: 'Person', label: 'member of', to: 'Team', pts: [1010, 450, 1080, 360] },
-        { from: 'Team', label: 'part of', to: 'Organization', pts: [1170, 352, 1236, 352], bend: -22 }
+        { from: 'Deal', label: 'for', to: 'Product', dyn: 'dealFor' },
+        { from: 'Deal', label: 'with', to: 'Party', dyn: 'dealWith' }
       ]
     },
     {
-      rect: [180, 516, 330, 228],
-      title: 'Project: a bounded body of work',
-      body: 'A project has an owner and a lifecycle. Task cards arrive through the slot on the right, and documents drop out of the tube in the ceiling. Both attach to the project they belong to.',
-      ents: ['Project', 'Team', 'Task', 'Document'],
+      rect: [675, 735, 430, 230],
+      title: 'The meeting',
+      story: 'Dana and Ravi talk through the proposal. An AI agent sits in and writes up the notes.',
+      note: 'The meeting is an Interaction that involves the people in it and is about the deal. The notes are a Document written by the agent. The agent is a Party too, run on Ravi\'s behalf.',
+      ents: ['Interaction', 'Document', 'Agent', 'Deal'],
       rels: [
-        { from: 'Project', label: 'owned by', to: 'Team' },
-        { from: 'Task', label: 'belongs to', to: 'Project', pts: [462, 692, 352, 650], bend: 18 },
-        { from: 'Document', label: 'attached to', to: 'Project', pts: [284, 590, 330, 612], bend: -22 }
+        { from: 'Interaction', label: 'involves', to: 'Party', dyn: 'involvesA' },
+        { from: 'Interaction', label: 'regarding', to: 'Deal', dyn: 'regarding' },
+        { from: 'Document', label: 'authored by', to: 'Party' },
+        { from: 'Agent', label: 'operated by', to: 'Party' }
       ]
     },
     {
-      rect: [480, 516, 580, 228],
-      title: 'Task: one kind of thing, nested',
-      body: 'The small cards riding on big ones are subtasks, and a subtask is just a Task whose parent is another Task. The stamp then assigns each card to a Party, either a person or the robot. Swapping one for the other needs no change to the model.',
-      ents: ['Task', 'Party', 'Project'],
+      rect: [1095, 735, 530, 230],
+      title: 'Signed',
+      story: 'Dana signs. Omar stamps the contract, and the badge is swapped: LEAD becomes CUSTOMER. A new card for Globex drops through the floor to Finance.',
+      note: 'It is the same Person with a new Role, and nothing about Dana had to be copied. The signature creates a Subscription, held by Globex, for the Pro plan.',
+      ents: ['Role', 'Subscription', 'Product', 'Party'],
       rels: [
-        { from: 'Task', label: 'subtask of', to: 'Task', pts: [948, 570, 946, 594], bend: 34 },
-        { from: 'Task', label: 'assigned to', to: 'Party', pts: [748, 655, 652, 676] },
-        { from: 'Task', label: 'assigned to', to: 'Party', pts: [772, 655, 868, 672] },
-        { from: 'Task', label: 'belongs to', to: 'Project' }
+        { from: 'Party', label: 'plays', to: 'Role' },
+        { from: 'Subscription', label: 'held by', to: 'Party', dyn: 'heldBy' },
+        { from: 'Subscription', label: 'for', to: 'Product' }
       ]
     },
     {
-      rect: [1040, 516, 290, 228],
-      title: 'Automation: a rule you can hold to account',
-      body: 'When something happens, if a condition holds, then act. Because the rule is stored as a record, it has an owner you can ask "why?", it can be switched off, and every task it creates is logged.',
+      rect: [675, 515, 570, 230],
+      title: 'A rule kicks in',
+      story: 'In Operations, a machine that Sam looks after notices the win. The rule says: when a deal is won and the plan is Pro, create the onboarding work. Three cards roll out, each stamped with who will do it, and go up the tube.',
+      note: 'The rule is an Automation, maintained by Sam. It creates Tasks. A big task carries its subtasks, and a subtask is just a Task with a parent.',
       ents: ['Automation', 'Task', 'Party'],
       rels: [
-        { from: 'Automation', label: 'creates', to: 'Task', pts: [1092, 640, 1060, 686], bend: 18 },
-        { from: 'Automation', label: 'maintained by', to: 'Party', pts: [1214, 640, 1272, 688] }
+        { from: 'Automation', label: 'creates', to: 'Task', dyn: 'creates' },
+        { from: 'Automation', label: 'maintained by', to: 'Party', dyn: 'maintained' },
+        { from: 'Task', label: 'subtask of', to: 'Task', dyn: 'subtask' }
       ]
     },
     {
-      rect: [1320, 516, 300, 228],
-      title: 'Document: one thing, many formats',
-      body: 'Docs, files, notes and templates differ only in their kind, which is why they share one drawer cabinet. People and agents both write, so the byline points at Party. Finished pages travel by tube to the project they are attached to.',
-      ents: ['Document', 'Party', 'Project'],
+      rect: [675, 295, 570, 230],
+      title: 'Engineering gets to work',
+      story: 'The cards pop out upstairs and go onto the Onboard Globex board, which belongs to the Platform team. Kai takes one card and Agent-7 takes another. The setup guide is pinned beside them.',
+      note: 'The board is a Project owned by a Team, and Kai is a member. Tasks belong to the Project and are assigned to a Party: a person or an agent, with no difference in the model. The guide is a Document attached to the Project.',
+      ents: ['Project', 'Team', 'Task', 'Document', 'Person', 'Agent'],
       rels: [
-        { from: 'Document', label: 'authored by', to: 'Party', pts: [1500, 678, 1452, 690], bend: 34 },
-        { from: 'Document', label: 'authored by', to: 'Party', pts: [1514, 678, 1564, 686], bend: -34 },
-        { from: 'Document', label: 'attached to', to: 'Project' }
+        { from: 'Project', label: 'owned by', to: 'Team', dyn: 'ownedBy' },
+        { from: 'Person', label: 'member of', to: 'Team', dyn: 'memberOf' },
+        { from: 'Task', label: 'assigned to', to: 'Party', dyn: 'assignedA' },
+        { from: 'Task', label: 'assigned to', to: 'Party', dyn: 'assignedB' },
+        { from: 'Task', label: 'belongs to', to: 'Project' },
+        { from: 'Document', label: 'attached to', to: 'Project', dyn: 'attached' }
       ]
     },
     {
-      rect: [180, 736, 300, 228],
-      title: 'Product: what you sell',
-      body: 'An app, a service or a monthly plan. A service is a product you cannot drop on your foot, and a plan is a product that recurs. All of them are one entity type with a kind and a price.',
-      ents: ['Product'],
-      rels: []
-    },
-    {
-      rect: [470, 736, 580, 228],
-      title: 'Deal: one crate, moving through stages',
-      body: 'The crate never turns into something else; only its stage label changes as it passes each gate. If Lead, Opportunity and Deal were separate entity types, every prospect that advanced would have to be moved from one table to another.',
-      ents: ['Deal', 'Party', 'Product'],
+      rect: [940, 295, 685, 230],
+      title: 'A key for the agent',
+      story: 'To set up Globex\'s account, Agent-7 needs access it doesn\'t have. Lee in IT takes the EDIT key from the cabinet and hands it over.',
+      note: 'The key is a Permission granted to a Party. Because it is a record, anyone can ask later who could change what, and since when. The answer covers people and agents alike.',
+      ents: ['Permission', 'Agent', 'Party'],
       rels: [
-        { from: 'Deal', label: 'with', to: 'Party', pts: [930, 896, 1008, 902], bend: -26 },
-        { from: 'Deal', label: 'for', to: 'Product' }
+        { from: 'Permission', label: 'granted to', to: 'Party', dyn: 'granted' },
+        { from: 'Agent', label: 'operated by', to: 'Party', dyn: 'operated7' }
       ]
     },
     {
-      rect: [1040, 736, 300, 228],
-      title: 'Interaction: every conversation, one shape',
-      body: 'Calls, emails, chats and meetings all have participants, a time and the deal they are about. So they are one entity type with a channel, not four types repeating the same links.',
-      ents: ['Interaction', 'Party', 'Deal'],
+      rect: [830, 955, 795, 230],
+      title: 'Month end',
+      story: 'A month later the calendar flips and the Finance wheel turns to Globex\'s card. Priya prints an invoice and sends it out through the mailroom. A payment comes back in, and the invoice is stamped PAID.',
+      note: 'The Invoice bills the Subscription, and the Payment settles the Invoice. The whole recurring-revenue story is those two arrows.',
+      ents: ['Subscription', 'Invoice', 'Payment'],
       rels: [
-        { from: 'Interaction', label: 'involves', to: 'Party', pts: [1250, 820, 1262, 880], bend: 14 },
-        { from: 'Interaction', label: 'regarding', to: 'Deal', pts: [1112, 800, 1040, 860], bend: -16 }
+        { from: 'Invoice', label: 'bills', to: 'Subscription', dyn: 'bills' },
+        { from: 'Payment', label: 'settles', to: 'Invoice', dyn: 'settles' }
       ]
     },
     {
-      rect: [180, 956, 1050, 228],
-      title: 'The money chain',
-      body: 'A Subscription binds a Party to a Product and renews on schedule. Each turn of the wheel prints an Invoice, and a Payment settles it. The whole recurring-revenue story can be read off three arrows.',
-      ents: ['Subscription', 'Invoice', 'Payment', 'Party', 'Product'],
+      rect: [1235, 515, 390, 230],
+      title: 'Dana has a question',
+      story: 'An email from Dana shoots up the tube into Support, and Mia answers it. Then Noor saves a screen that shows only Globex\'s open questions, so nothing gets missed.',
+      note: 'The email is another Interaction, involving Dana and Mia. The saved screen is a SavedView created by Noor: a way of looking at records, kept as a record itself.',
+      ents: ['Interaction', 'SavedView', 'Person'],
       rels: [
-        { from: 'Subscription', label: 'held by', to: 'Party', pts: [352, 1064, 282, 1126] },
-        { from: 'Subscription', label: 'for', to: 'Product' },
-        { from: 'Invoice', label: 'bills', to: 'Subscription', pts: [690, 1110, 470, 1090], bend: -26 },
-        { from: 'Payment', label: 'settles', to: 'Invoice', pts: [1000, 1040, 900, 1110], bend: 22 }
+        { from: 'Interaction', label: 'involves', to: 'Party', dyn: 'involvesMia' },
+        { from: 'SavedView', label: 'created by', to: 'Party', dyn: 'createdBy' }
       ]
     },
     {
-      rect: [1340, 736, 290, 228],
-      title: 'Saved View: a way of looking, worth keeping',
-      body: 'A Kanban board isn\'t part of your business; it\'s a way of looking at it. Once someone saves a view, though, it has an owner, a filter and a layout, so it becomes a real record.',
-      ents: ['SavedView', 'Party'],
-      rels: [{ from: 'SavedView', label: 'created by', to: 'Party', pts: [1470, 860, 1540, 900], bend: 14 }]
-    },
-    {
-      rect: [1290, 296, 330, 228],
-      title: 'Permission: keys, handed to Parties',
-      body: 'Who may do how much to what. Because each grant is a record, you can ask "who can edit this, and since when?", and the same answer covers people and agents.',
-      ents: ['Permission', 'Party'],
-      rels: [
-        { from: 'Permission', label: 'granted to', to: 'Party', pts: [1370, 420, 1470, 456] },
-        { from: 'Permission', label: 'granted to', to: 'Party', pts: [1370, 420, 1572, 456], bend: -30 }
-      ]
-    },
-    {
-      rect: [150, 1060, 860, 320],
-      title: 'Audit Event: the building\'s memory',
-      body: 'Every action drops a slip down the pipes into the vault: who did what, when, and to what. Nothing is ever erased. When agents work alongside people, this record is how you check what happened instead of taking it on trust.',
+      rect: [560, 1222, 700, 140],
+      title: 'The building remembers',
+      story: 'Down in the archive, a tape has been running all day. The badge, the deal, the tasks, the key and the invoice all left a line on it.',
+      note: 'Each line is an AuditEvent performed by a Party: who did what, and when. Nothing is ever erased, so when agents work alongside people, trust can be checked instead of assumed.',
       ents: ['AuditEvent', 'Party'],
-      rels: [{ from: 'AuditEvent', label: 'performed by', to: 'Party', pts: [640, 1270, 286, 1140], bend: -40 }]
+      rels: [{ from: 'AuditEvent', label: 'performed by', to: 'Party', dyn: 'performed' }]
     },
     {
       rect: [120, 40, 1560, 1340],
       map: true,
-      title: 'Now look at it as a map',
-      body: 'This is the same building drawn as an ontology: each room is an entity type and each arrow is a relationship. Notice how many arrows end at Party. That is the idea the whole model is built on.',
+      title: 'The same day, as a map',
+      story: 'Now take the building away and keep only what the software tracks.',
+      note: 'Each kind of thing you saw is an entity type, and each arrow is a relationship. Count how many arrows end at Party.',
       ents: [], rels: [], outro: true
     }
   ];
@@ -309,7 +288,10 @@
     '.eos-kicker{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--eos-muted);display:flex;justify-content:space-between;gap:8px}',
     '.eos-title{margin:4px 0 6px;font-size:19px;line-height:1.25;font-weight:700;letter-spacing:-.01em}',
     '.eos-body{margin:0;font-size:14.5px;color:var(--eos-ink)}',
-    '.eos-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}',
+    '.eos-model{margin-top:10px;padding-top:8px;border-top:1px dashed var(--eos-line)}',
+    '.eos-model h3{margin:0 0 3px;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--eos-muted);font-weight:700}',
+    '.eos-note{margin:0;font-size:13.5px;color:var(--eos-ink)}',
+    '.eos-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}',
     '.eos-chip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--eos-line);padding:1px 8px 1px 6px;font-size:12.5px;font-weight:600;background:var(--eos-paper)}',
     '.eos-chip i{width:9px;height:9px;border-radius:50%;display:inline-block}',
     '.eos-rels{margin:8px 0 0;padding:0;list-style:none;font-size:12.5px;color:var(--eos-muted)}',
@@ -324,9 +306,8 @@
     '.eos-dot{flex:1;height:4px;background:var(--eos-line);border:0;padding:0;cursor:pointer;position:relative;min-width:0}',
     '.eos-dot.eos-done{background:var(--eos-ink)}',
     '.eos-dot span{position:absolute;left:0;top:0;bottom:0;background:var(--eos-ink)}',
-    '.eos-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}',
-    '@media (max-width:720px){.eos-card{position:relative;left:auto;bottom:auto;width:auto;margin:0;border-width:1.5px 0 0;box-shadow:none;max-height:46%;overflow:auto;padding:12px 16px}',
-    '.eos-title{font-size:17px}.eos-body{font-size:14px}}'
+    '@media (max-width:720px){.eos-card{position:relative;left:auto;bottom:auto;width:auto;margin:0;border-width:1.5px 0 0;box-shadow:none;max-height:48%;overflow:auto;padding:12px 16px}',
+    '.eos-title{font-size:17px}.eos-body{font-size:14px}.eos-note{font-size:13px}}'
   ].join('');
 
   function injectCss() {
@@ -347,7 +328,7 @@
 
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
   function lerp(a, b, k) { return a + (b - a) * k; }
-  function ease(k) { return k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2; }
+  function ease(k) { k = clamp(k, 0, 1); return k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2; }
   function mod(a, n) { return ((a % n) + n) % n; }
   function hexA(hex, a) {
     var n = parseInt(hex.slice(1), 16);
@@ -359,6 +340,8 @@
     if (parent) parent.appendChild(e);
     return e;
   }
+  // a cheap deterministic flicker, for server lights
+  function flick(i, t) { return Math.sin(i * 12.9898 + Math.floor(t * 3 + i * 0.37) * 78.233) > 0.1; }
 
   // ---------------------------------------------------------------------------
   // Scene
@@ -378,7 +361,7 @@
     var root = el('div', 'eos-root', host);
     root.tabIndex = 0;
     root.setAttribute('role', 'region');
-    root.setAttribute('aria-label', 'Elements of Software: an animated tour of a software business ontology');
+    root.setAttribute('aria-label', 'Elements of Software: an animated day at a software company, explaining its ontology');
     if (opts.theme) root.setAttribute('data-theme', opts.theme);
 
     var stage = el('div', 'eos-stage', root);
@@ -394,8 +377,12 @@
     kName.textContent = 'Elements of Software';
     var title = el('h2', 'eos-title', card);
     var body = el('p', 'eos-body', card);
-    var chips = el('div', 'eos-chips', card);
-    var rels = el('ul', 'eos-rels', card);
+    var model = el('div', 'eos-model', card);
+    var modelH = el('h3', null, model);
+    modelH.textContent = 'In the model';
+    var note = el('p', 'eos-note', model);
+    var chips = el('div', 'eos-chips', model);
+    var rels = el('ul', 'eos-rels', model);
     var link = el('a', 'eos-link', card);
     link.target = '_blank';
     link.rel = 'noopener';
@@ -427,32 +414,42 @@
     // ---- state -------------------------------------------------------------
     var step = clamp(opts.start | 0, 0, TOUR.length - 1);
     var playing = opts.autoplay !== false && !reduced;
-    var stepClock = 0;
+    var stepClock = 0;         // time spent on this stop while playing (drives autoplay)
+    var ct = 0;                // time since this stop began (drives its story)
     var mapOn = false, mapK = 0;
     var t = 0;                 // ambient animation time (s)
     var vw = 1, vh = 1, dpr = 1, insetL = 0, insetB = 0;
     var cam = { x: W / 2, y: H / 2, s: 0.4 };
     var free = false;          // user has taken over the camera
     var hoverRoom = null;
-    var focusK = 0;            // 0..1 fade for the focus highlight
+    var focusK = 0;            // 0..1 fade-in for this stop's tags and arrows
     var visible = true;
     var P = { paper: '#fbfaf6', ink: '#1c1c1c', soft: 'rgba(28,28,28,.08)', faint: 'rgba(28,28,28,.16)', dark: false };
     var px = 1;                // one screen pixel in world units
     var MAX_ZOOM = 3;
     var DYN = {};              // arrow endpoints that follow moving things
+    var TAGS = [];             // entity tags collected while drawing a frame
 
     function stepDuration(i) {
       var s = TOUR[i];
-      var words = (s.title + ' ' + s.body).split(/\s+/).length;
-      return Math.max(8, words / 3.3 + 2.5);
+      var words = (s.title + ' ' + s.story + ' ' + s.note).split(/\s+/).length;
+      return Math.max(12, words / 3.4 + 3);
     }
+
+    // story helpers
+    function at(i) { return step === i; }
+    function seg(a, b) { return clamp((ct - a) / (b - a), 0, 1); }
 
     // ---- caption card --------------------------------------------------------
     function renderCard() {
       var s = TOUR[step];
       kStep.textContent = (step + 1) + ' / ' + TOUR.length;
       title.textContent = s.title;
-      body.textContent = s.body;
+      body.textContent = s.story;
+      note.textContent = s.note;
+      if (s.outro) {
+        note.textContent = s.note + ' ' + Object.keys(ENTITIES).length + ' entity types, ' + RELATIONS.length + ' relationships.';
+      }
 
       chips.textContent = '';
       s.ents.forEach(function (name) {
@@ -472,18 +469,14 @@
         if (seen[key]) return;
         seen[key] = 1;
         var li = el('li', null, rels);
-        var a = el('b', null, li); a.textContent = r.from;
+        el('b', null, li).textContent = r.from;
         li.appendChild(document.createTextNode(' — '));
-        var m = el('em', null, li); m.textContent = r.label;
+        el('em', null, li).textContent = r.label;
         li.appendChild(document.createTextNode(' → '));
-        var b = el('b', null, li); b.textContent = r.to;
+        el('b', null, li).textContent = r.to;
       });
       rels.style.display = s.rels.length ? '' : 'none';
 
-      if (s.outro) {
-        var nE = Object.keys(ENTITIES).length;
-        body.textContent = s.body + ' ' + nE + ' entity types, ' + RELATIONS.length + ' relationships.';
-      }
       link.style.display = s.outro && mapUrl ? '' : 'none';
       if (mapUrl) link.href = mapUrl;
 
@@ -501,6 +494,7 @@
     function go(i, manual) {
       step = mod(i, TOUR.length);
       stepClock = 0;
+      ct = reduced ? 30 : 0;   // under reduced motion, show each stop's end state
       free = false;
       focusK = 0;
       if (manual && reduced) playing = false;
@@ -523,7 +517,6 @@
       });
       best = best || { s: Math.min(vw / r[2], vh / r[3]), x: r[0] + r[2] / 2, y: r[1] + r[3] / 2 };
       if (best.s > MAX_ZOOM) {
-        // keep the rect centred in its region at the capped zoom
         var g2 = best.s;
         best.x = r[0] + r[2] / 2 + (best.x - r[0] - r[2] / 2) * g2 / MAX_ZOOM;
         best.y = r[1] + r[3] / 2 + (best.y - r[1] - r[3] / 2) * g2 / MAX_ZOOM;
@@ -584,7 +577,7 @@
         hoverRoom = roomAt(w[0], w[1]);
         stage.classList.toggle('eos-hover', !!hoverRoom);
         if (hoverRoom) {
-          tip.textContent = (hoverRoom.ent ? ENTITIES[hoverRoom.ent].icon + ' ' : '') + hoverRoom.name;
+          tip.textContent = hoverRoom.name;
           tip.style.left = p[0] + 'px'; tip.style.top = p[1] + 'px';
         }
         tip.classList.toggle('eos-on', !!hoverRoom);
@@ -739,30 +732,20 @@
       for (var i = y + gap; i < y + h; i += gap) { ctx.moveTo(x, i); ctx.lineTo(x + w, i); }
       ctx.stroke();
     }
-    function sign(cx, y, label, size, accent) {
+    function sign(cx, y, label, size) {
       size = size || 10;
-      var w = textW(label, size, 700) + 14 + (accent ? 10 : 0), h = size + 9;
+      var w = textW(label, size, 700) + 14, h = size + 9;
       lw(1.4);
       box(cx - w / 2, y, w, h);
-      if (accent) {
-        ctx.fillStyle = accent;
-        ctx.fillRect(cx - w / 2 + 5, y + h / 2 - 3, 6, 6);
-      }
-      text(label, cx + (accent ? 5 : 0), y + h / 2 + 0.5, size, 'center', 700);
+      text(label, cx, y + h / 2 + 0.5, size, 'center', 700);
       return w;
     }
-    function tag(cx, cy, label, size) {
-      var w = textW(label, size, 800) + 6, h = size + 4;
-      ctx.fillStyle = P.paper;
-      ctx.fillRect(cx - w / 2, cy - h / 2, w, h);
-      text(label, cx, cy + 0.5, size, 'center', 800);
-    }
-    function hangSign(cx, ceil, label, accent) {
+    function hangSign(cx, ceil, label) {
       lw(1);
-      var w = textW(label, 10, 700) + 24;
+      var w = textW(label, 10, 700) + 14;
       line(cx - w / 2 + 8, ceil, cx - w / 2 + 8, ceil + 10);
       line(cx + w / 2 - 8, ceil, cx + w / 2 - 8, ceil + 10);
-      sign(cx, ceil + 10, label, 10, accent);
+      sign(cx, ceil + 10, label, 10);
     }
     function lamp(x, ceil, len) {
       lw(1);
@@ -791,7 +774,8 @@
     }
     function frameBoard(x, y, w, h) { lw(1.2); box(x, y, w, h); lw(0.8); box(x + 3, y + 3, w - 6, h - 6, false); }
 
-    // A person, feet at (x, y). o: { walk, seated, arm, flip, badge, cap, color, s }
+    // A person, feet at (x, y).
+    // o: { walk, seated, arm, flip, badge, cap, headset, bag, s }
     function person(x, y, o) {
       o = o || {};
       var s = o.s || 1;
@@ -815,7 +799,6 @@
         line(0, -35, 0, -15);
         headY = -43;
       }
-      // arms
       var shY = headY + 9;
       var arm = o.arm || 'down';
       if (arm === 'down') { line(-6, shY, -9, shY + 16); line(6, shY, 9, shY + 16); }
@@ -824,17 +807,29 @@
       else if (arm === 'type') {
         var j = Math.sin(t * 14 + x) * 1.2;
         line(5, shY + 1, 14, shY + 9 + j); line(-3, shY + 1, 10, shY + 10 - j);
-      } else if (arm === 'hold') { line(-6, shY, -9, shY + 16); line(6, shY, 14, shY + 8); line(14, shY + 8, 18, shY + 3); }
-      // head
+      } else if (arm === 'phone') { line(-6, shY, -9, shY + 16); line(6, shY, 9, shY + 6); line(9, shY + 6, 5, shY - 5); }
+      else if (arm === 'hold') { line(-6, shY, -9, shY + 16); line(6, shY, 14, shY + 8); line(14, shY + 8, 18, shY + 3); }
+      else if (arm === 'cheer') { line(-6, shY, -12, shY - 10); line(6, shY, 12, shY - 10); }
       circle(0, headY, 5.5);
       ctx.beginPath();
       ctx.arc(0, headY, 5.5, Math.PI * 1.05, Math.PI * 1.95);
       ctx.fillStyle = P.ink; ctx.fill();
-      if (o.cap) { ctx.fillRect(-6, headY - 6, 12, 2.5); }
+      if (o.cap) ctx.fillRect(-6, headY - 6, 12, 2.5);
+      if (o.headset) {
+        lw(1);
+        ctx.beginPath(); ctx.arc(0, headY, 7.5, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke();
+        line(6.5, headY - 2, 7, headY + 4); line(7, headY + 4, 3, headY + 5);
+      }
       if (o.badge) {
         ctx.fillStyle = o.badge;
-        ctx.fillRect(1.5, shY + 3, 4, 4);
-        lw(0.6); ctx.strokeRect(1.5, shY + 3, 4, 4);
+        ctx.fillRect(1.5, shY + 3, 4.5, 4.5);
+        lw(0.6); ctx.strokeRect(1.5, shY + 3, 4.5, 4.5);
+      }
+      if (o.bag) {
+        lw(1.1);
+        box(-15, shY + 12, 11, 8);
+        line(-12, shY + 12, -12, shY + 10); line(-12, shY + 10, -7, shY + 10); line(-7, shY + 10, -7, shY + 12);
+        ctx.fillStyle = o.bag; ctx.fillRect(-14, shY + 15, 9, 2);
       }
       ctx.restore();
     }
@@ -855,8 +850,7 @@
       ctx.fillStyle = P.ink;
       ctx.fillRect(-5, -39, 10, 3.5);
       ctx.fillStyle = ENTITIES.Agent.color;
-      var blink = Math.sin(t * 3 + x) > -0.6;
-      if (blink) { ctx.fillRect(-3.5, -38.5, 2.5, 2.5); ctx.fillRect(1.5, -38.5, 2.5, 2.5); }
+      if (Math.sin(t * 3 + x) > -0.6) { ctx.fillRect(-3.5, -38.5, 2.5, 2.5); ctx.fillRect(1.5, -38.5, 2.5, 2.5); }
       line(0, -43, 0, -49);
       circle(0, -50.5, 1.8, Math.sin(t * 5 + x) > 0 ? ENTITIES.Agent.color : P.paper);
       var arm = o.arm || 'down';
@@ -865,6 +859,7 @@
         line(8, -26, 16, -20 + j); line(-8, -26, 8, -18 - j);
       } else if (arm === 'forward') { line(8, -26, 18, -24); line(-8, -26, -11, -15); }
       else { line(8, -26, 11, -15); line(-8, -26, -11, -15); }
+      if (o.key) keyShape(13, -18, 0.4);
       ctx.restore();
     }
 
@@ -893,14 +888,11 @@
     function belt(x1, x2, y, speed, floor) {
       lw(1.3);
       box(x1, y, x2 - x1, 9);
-      var off = mod(t * speed, 18);
       for (var x = x1 + 7; x < x2 - 3; x += 18) {
         circle(x, y + 4.5, 3.6);
         var a = t * speed / 3.6;
         line(x, y + 4.5, x + Math.cos(a) * 3.6, y + 4.5 + Math.sin(a) * 3.6);
       }
-      lw(0.8);
-      for (var m = x1 + off; m < x2; m += 18) line(m, y, m + 2, y - 0.01);
       if (floor) {
         lw(1.2);
         for (var p = x1 + 12; p < x2; p += 80) { line(p, y + 9, p - 4, floor); line(p, y + 9, p + 4, floor); }
@@ -909,8 +901,10 @@
 
     function taskCard(x, y, w, h, o) {
       o = o || {};
-      lw(1.1);
-      box(x, y, w, h);
+      lw(o.hot ? 1.6 : 1.1);
+      if (o.hot) ctx.strokeStyle = ENTITIES.Task.color;
+      box(x, y, w, h, o.hot ? hexA(ENTITIES.Task.color, 0.18) : P.paper);
+      ctx.strokeStyle = P.ink;
       ctx.fillStyle = ENTITIES.Task.color;
       ctx.fillRect(x + 1, y + 1, 3, h - 2);
       lw(0.7);
@@ -923,11 +917,23 @@
       }
     }
 
-    function monitor(x, y, w, h) {
+    function monitor(x, y, w, h, kind) {
       lw(1.2);
       box(x, y, w, h);
       line(x + w / 2, y + h, x + w / 2, y + h + 6);
       line(x + w / 2 - 6, y + h + 6, x + w / 2 + 6, y + h + 6);
+      if (kind === 'code') {
+        lw(0.7);
+        for (var i = 0; i < 4; i++) {
+          var len = 6 + mod(i * 7 + Math.floor(t * 1.5 + x), 9) * 1.4;
+          line(x + 3 + (i % 2) * 4, y + 4 + i * 4, x + 3 + (i % 2) * 4 + len, y + 4 + i * 4);
+        }
+      } else if (kind === 'chart') {
+        lw(0.8);
+        ctx.beginPath();
+        for (var k = 0; k <= 6; k++) ctx.lineTo(x + 3 + k * (w - 6) / 6, y + h - 4 - (Math.sin(k * 1.3 + x) * 0.5 + 0.5) * (h - 8));
+        ctx.stroke();
+      }
     }
 
     function desk(x, y, w, floor) {
@@ -936,20 +942,13 @@
       line(x + 4, y + 5, x + 4, floor); line(x + w - 4, y + 5, x + w - 4, floor);
     }
 
-    function chair(x, floor) {
+    function chair(x, floor, flip) {
       lw(1.2);
-      line(x - 8, floor - 17, x + 4, floor - 17);
-      line(x - 8, floor - 17, x - 9, floor - 36);
-      line(x - 2, floor - 17, x - 2, floor - 4);
-      line(x - 8, floor - 1, x + 4, floor - 1);
-    }
-
-    function crate(x, y, w, h) {
-      lw(1.2);
-      box(x, y, w, h);
-      lw(0.7);
-      line(x, y, x + w, y + h); line(x + w, y, x, y + h);
-      line(x, y + h / 2, x + w, y + h / 2);
+      var d = flip ? -1 : 1;
+      line(x - 8 * d, floor - 17, x + 4 * d, floor - 17);
+      line(x - 8 * d, floor - 17, x - 9 * d, floor - 36);
+      line(x - 2 * d, floor - 17, x - 2 * d, floor - 4);
+      line(x - 8 * d, floor - 1, x + 4 * d, floor - 1);
     }
 
     function plant(x, floor) {
@@ -963,318 +962,23 @@
       }
     }
 
-    function stairs(x, floor, w, h, dir) {
-      lw(1.1);
-      var n = 9, sw = w / n, sh = h / n;
-      ctx.beginPath();
-      for (var i = 0; i < n; i++) {
-        var sx = dir > 0 ? x + i * sw : x + w - i * sw;
-        ctx.moveTo(sx, floor - i * sh); ctx.lineTo(sx, floor - (i + 1) * sh);
-        ctx.lineTo(sx + dir * sw, floor - (i + 1) * sh);
-      }
-      ctx.stroke();
-      line(dir > 0 ? x : x + w, floor - 26, dir > 0 ? x + w : x, floor - h - 26);
-    }
-
-    // =========================================================================
-    // The building shell
-    // =========================================================================
-
-    function drawShell() {
-      ctx.strokeStyle = P.ink;
-      ctx.lineJoin = 'round';
-
-      // --- ground & earth
-      lw(1.4);
-      line(40, GROUND, W - 40, GROUND);
-      ctx.save();
-      ctx.globalAlpha = 0.55;
-      hatch(60, GROUND, W - 120, 210, 9, 0.7);
-      ctx.restore();
-      // grass ticks
-      lw(0.8);
-      for (var g = 60; g < W - 60; g += 13) {
-        if (g > X0 - 10 && g < X1 + 10) continue;
-        line(g, GROUND, g - 2, GROUND - 4); line(g + 3, GROUND, g + 4, GROUND - 5);
-      }
-
-      // --- roofs
-      lw(1.6);
-      // left gable
-      var lg = [160, 300, 410, 150, 660, 300];
-      poly(lg);
-      hatchPoly(lg, 7, 0.6);
-      poly([300, 300, 410, 214, 520, 300]);
-      vlines(300, 214, 220, 86, 8, 0.6);
-      lw(1.3); circle(410, 258, 16); line(394, 258, 426, 258); line(410, 242, 410, 274);
-      // sawtooth middle
-      for (var i = 0; i < 4; i++) {
-        var sx = 640 + i * 162.5;
-        var tooth = [sx, 300, sx, 230, sx + 162.5, 300];
-        lw(1.5);
-        poly(tooth);
-        hatchPoly([sx + 4, 300, sx + 4, 240, sx + 158, 299], 6, 0.55);
-        lw(1.1);
-        box(sx + 2, 236, 6, 60);
-      }
-      // chimney
-      lw(1.6);
-      poly([1252, 300, 1258, 110, 1290, 110, 1296, 300]);
-      vlines(1254, 112, 40, 186, 6, 0.6);
-      box(1250, 102, 48, 10);
-      lw(1.2);
-      circle(1274, 170, 9);
-      ctx.save(); ctx.fillStyle = ENTITIES.Party.color; ctx.beginPath(); ctx.arc(1274, 170, 5, 0, TAU); ctx.fill(); ctx.restore();
-      // right gable
-      var rg = [1272, 300, 1455, 178, 1640, 300];
-      lw(1.6);
-      poly(rg);
-      hatchPoly(rg, 7, 0.6);
-      windowFrame(1430, 238, 50, 40);
-      // rooftop sign
-      lw(1.3);
-      line(860, 230, 860, 262); line(1070, 230, 1070, 262);
-      line(860, 262, 850, 300); line(1070, 262, 1080, 300);
-      box(820, 196, 290, 36);
-      text('ELEMENTS OF SOFTWARE', 965, 214.5, 17, 'center', 800);
-
-      // smoke
-      for (var k = 0; k < 7; k++) {
-        var age = mod(t * 0.9 + k * 1.15, 8);
-        var a = 1 - age / 8;
-        ctx.save();
-        ctx.globalAlpha = a;
-        lw(1.1);
-        circle(1274 + age * 22 + Math.sin(age * 1.7 + k) * 5, 92 - age * 11, 7 + age * 3.2);
-        ctx.restore();
-      }
-
-      // --- room back walls
-      ROOMS.forEach(function (q) {
-        if (q.id === 'audit') return;
-        ctx.fillStyle = P.paper;
-        ctx.fillRect(q.x, q.y, q.w, q.h);
-        vlines(q.x, q.y + 5, q.w, q.h - 10, 7, 0.22);
-      });
-
-      // --- audit vault (underground)
-      var A = ROOMS[16];
-      ctx.fillStyle = P.paper;
-      ctx.fillRect(A.x, A.y, A.w, A.h);
-      ctx.save(); ctx.globalAlpha = 0.18; hlines(A.x, A.y, A.w, A.h, 9); ctx.restore();
-      ctx.fillStyle = P.ink;
-      ctx.fillRect(A.x - 10, A.y - 6, A.w + 20, 8);
-      ctx.fillRect(A.x - 10, A.y + A.h, A.w + 20, 10);
-      ctx.fillRect(A.x - 10, A.y - 6, 10, A.h + 16);
-      ctx.fillRect(A.x + A.w, A.y - 6, 10, A.h + 16);
-
-      // --- floor slabs and outer walls
-      ctx.fillStyle = P.ink;
-      FLOORS.forEach(function (fy) { ctx.fillRect(X0 - 6, fy - 5, X1 - X0 + 12, 10); });
-      ctx.fillRect(X0 - 6, 300, 12, GROUND - 300 + 5);
-      ctx.fillRect(X1 - 6, 300, 12, 960 - 300);
-      ctx.fillRect(X1 - 6, 960, 12, 120); // lobby wall above the revolving door
-
-      // interior partitions with door gaps at floor level
-      function part(x, top, bottom, gap) {
-        ctx.fillStyle = P.ink;
-        ctx.fillRect(x - 4, top, 8, bottom - top - (gap || 0));
-      }
-      part(640, 300, 520, 60);
-      part(960, 300, 520, 60);
-      part(1290, 300, 520, 0);
-      part(480, 520, 740, 46);
-      part(1050, 520, 740, 46);
-      part(1320, 520, 740, 0);
-      part(470, 740, 960, 46);
-      part(1040, 740, 960, 60);
-      part(1340, 740, 960, 0);
-      part(560, 960, 1180, 40);
-      part(900, 960, 1180, 40);
-      part(1220, 960, 1180, 60);
-
-      // --- outside the building: left tree + bench, right van
-      lw(1.3);
-      line(96, GROUND, 96, GROUND - 70);
-      for (var b = 0; b < 5; b++) {
-        circle(96 + Math.cos(b * 1.3) * 22, GROUND - 92 + Math.sin(b * 1.9) * 16, 20);
-      }
-      lw(1.2);
-      box(1700, GROUND - 44, 70, 34);
-      poly([1700, GROUND - 44, 1680, GROUND - 32, 1676, GROUND - 10, 1700, GROUND - 10]);
-      circle(1690, GROUND - 6, 7); circle(1752, GROUND - 6, 7);
-      text('DELIVERY', 1735, GROUND - 28, 8, 'center', 800);
-    }
-
-    // =========================================================================
-    // Rooms
-    // =========================================================================
-
-    function F(q) { return q.y + q.h - 5; }   // floor line of a room
-    function C(q) { return q.y + 5; }         // ceiling line
-
-    function drawPartyHall(q) {
-      var fl = F(q), ce = C(q);
-      windowFrame(210, 340, 50, 60);
-      windowFrame(560, 340, 50, 60);
-      lamp(300, ce, 20); lamp(520, ce, 20);
-      // banner
-      lw(1.5);
-      box(300, 330, 220, 40);
-      ctx.fillStyle = ENTITIES.Party.color;
-      ctx.fillRect(301, 331, 8, 38);
-      text('PARTY', 410, 343, 14, 'center', 800);
-      text('anyone who can act', 410, 359, 9, 'center', 600);
-      line(320, ce, 320, 330); line(500, ce, 500, 330);
-      // stage
-      lw(1.4);
-      box(232, fl - 12, 346, 12);
-      ctx.save(); ctx.globalAlpha = 0.6; hatch(232, fl - 12, 346, 12, 5, 0.6); ctx.restore();
-      // three kinds of party
-      person(292, fl - 12, { arm: 'up', badge: ENTITIES.Person.color });
-      // organization: a small building on a cart
-      lw(1.3);
-      var ox = 410, oy = fl - 12;
-      box(ox - 18, oy - 38, 36, 32);
-      poly([ox - 21, oy - 38, ox, oy - 52, ox + 21, oy - 38]);
-      for (var r = 0; r < 2; r++) for (var c = 0; c < 3; c++) box(ox - 13 + c * 10, oy - 32 + r * 12, 6, 7);
-      line(ox, oy - 52, ox, oy - 64);
-      ctx.fillStyle = ENTITIES.Organization.color;
-      ctx.beginPath(); ctx.moveTo(ox, oy - 64); ctx.lineTo(ox + 10 + Math.sin(t * 4) * 2, oy - 61); ctx.lineTo(ox, oy - 58); ctx.fill();
-      circle(ox - 12, oy - 3, 3); circle(ox + 12, oy - 3, 3);
-      line(ox - 18, oy - 6, ox + 18, oy - 6);
-      robot(528, fl - 12);
-      // operator with a remote
-      person(592, fl, { arm: 'hold', flip: true, badge: ENTITIES.Person.color });
-      lw(1); box(572, fl - 30, 5, 8);
-      ctx.save();
-      for (var w = 0; w < 3; w++) {
-        var k = mod(t * 1.2 + w / 3, 1);
-        ctx.globalAlpha = 1 - k;
-        ctx.beginPath(); ctx.arc(572, fl - 30, 6 + k * 22, Math.PI * 0.85, Math.PI * 1.15); ctx.stroke();
-      }
-      ctx.restore();
-      // captions on the stage front
-      tag(292, fl - 6, 'PERSON', 7);
-      tag(410, fl - 6, 'ORGANIZATION', 7);
-      tag(528, fl - 6, 'AGENT', 7);
-      // generalization: each kind is a Party (UML hollow arrowheads)
-      lw(0.9);
-      ctx.save(); ctx.globalAlpha = 0.6; ctx.setLineDash([3, 3]);
-      line(294, fl - 66, 345, 378); line(410, fl - 80, 410, 378); line(526, fl - 70, 475, 378);
-      ctx.restore();
-      [[345, 371], [410, 371], [475, 371]].forEach(function (p) { poly([p[0] - 4, p[1] + 7, p[0], p[1], p[0] + 4, p[1] + 7]); });
-      plant(214, fl);
-    }
-
-    var ROLES = [['LEAD', 'ACME'], ['CUSTOMER', 'ACME'], ['VENDOR', 'GLOBEX'], ['EMPLOYEE', 'INITECH']];
-    function drawRoleDesk(q) {
-      var fl = F(q), ce = C(q);
-      lamp(800, ce, 16);
-      hangSign(720, ce, 'ROLE DESK', ENTITIES.Role.color);
-      // badge rack
-      frameBoard(734, 352, 122, 62);
-      function badgeAt(i) { return [744 + (i % 2) * 54, 360 + Math.floor(i / 2) * 26]; }
-      ROLES.forEach(function (r, i) {
-        var b = badgeAt(i), bx = b[0], by = b[1];
-        lw(0.8); line(bx + 23, by - 2, bx + 23, by + 2);
-        lw(1); box(bx, by + 2, 46, 18);
-        ctx.fillStyle = ENTITIES.Role.color; ctx.fillRect(bx + 1, by + 3, 44, 4);
-        text(r[0], bx + 23, by + 14, 6.5, 'center', 800);
-      });
-      // counter + clerk
-      person(915, fl - 20, { arm: 'forward', flip: true, badge: ENTITIES.Person.color, s: 0.95 });
-      lw(1.4);
-      box(860, fl - 42, 90, 42);
-      ctx.save(); ctx.globalAlpha = 0.6; hatch(860, fl - 42, 90, 42, 6, 0.6); ctx.restore();
-      box(866, fl - 52, 40, 12);
-      ctx.fillStyle = ENTITIES.Organization.color; ctx.fillRect(867, fl - 51, 4, 10);
-      text('@ ORG', 888, fl - 46, 6.5, 'center', 800);
-      // the visitor: same person, a new role each visit
-      var cyc = 9, c = Math.floor(t / cyc), u = t - c * cyc, x, walking = true, flip = false;
-      if (u < 3) x = lerp(706, 840, ease(u / 3));
-      else if (u < 5) { x = 840; walking = false; }
-      else if (u < 8) { x = lerp(840, 706, ease((u - 5) / 3)); flip = true; }
-      else { x = 706; walking = false; }
-      var ri = (u < 4 ? c : c + 1) % ROLES.length, role = ROLES[ri];
-      var rb = badgeAt(ri);
-      DYN.plays = [x + (flip ? -6 : 6), fl - 74, rb[0] + 23, rb[1] + 22];
-      DYN.at = [rb[0] + (ri % 2 ? 46 : 0), rb[1] + 12, 880, fl - 54];
-      person(x, fl, { walk: walking ? t * 9 : null, flip: flip, arm: u > 3 && u < 5 ? 'forward' : 'down', badge: ENTITIES.Role.color });
-      // floating tag
-      var tagW = textW(role[0] + ' @ ' + role[1], 7, 800) + 12;
+    function mug(x, y) {
       lw(1);
-      box(x - tagW / 2, fl - 72, tagW, 13);
-      text(role[0] + ' @ ' + role[1], x, fl - 65.5, 7, 'center', 800);
-      line(x, fl - 59, x, fl - 52);
-      if (u > 3.6 && u < 4.4) {
-        ctx.save(); ctx.globalAlpha = 1 - Math.abs(u - 4) / 0.4;
-        lw(1);
-        for (var i = 0; i < 6; i++) { var a = i * TAU / 6; line(x + Math.cos(a) * 18, fl - 66 + Math.sin(a) * 11, x + Math.cos(a) * 24, fl - 66 + Math.sin(a) * 15); }
-        ctx.restore();
+      box(x - 3.5, y - 7, 7, 7);
+      ctx.beginPath(); ctx.arc(x + 4.5, y - 3.5, 2.2, -Math.PI / 2, Math.PI / 2); ctx.stroke();
+      ctx.save();
+      ctx.globalAlpha = 0.5;
+      for (var i = 0; i < 2; i++) {
+        var k = mod(t * 0.6 + i * 0.5, 1);
+        ctx.globalAlpha = 0.6 * (1 - k);
+        ctx.beginPath();
+        ctx.moveTo(x - 1 + i * 2, y - 9 - k * 12);
+        ctx.quadraticCurveTo(x + 2 + i * 2, y - 12 - k * 12, x - 1 + i * 2, y - 15 - k * 12);
+        ctx.stroke();
       }
+      ctx.restore();
     }
 
-    function drawTeamRoom(q) {
-      var fl = F(q), ce = C(q);
-      lamp(1060, ce, 16); lamp(1200, ce, 16);
-      // team sign + org plaque
-      lw(1.3);
-      box(1078, 340, 94, 26);
-      ctx.fillStyle = ENTITIES.Team.color; ctx.fillRect(1079, 341, 5, 24);
-      text('TEAM · PLATFORM', 1128, 353, 8, 'center', 800);
-      box(1236, 342, 44, 22);
-      text('ACME', 1258, 353, 8, 'center', 800);
-      // whiteboard with stickies
-      frameBoard(985, 336, 74, 50);
-      for (var i = 0; i < 6; i++) {
-        var sx = 992 + (i % 3) * 21, sy = 344 + Math.floor(i / 3) * 18;
-        lw(0.8); box(sx, sy, 14, 12, i === 2 ? hexA(ENTITIES.Team.color, 0.35) : P.paper);
-      }
-      // desks with members
-      desk(990, fl - 34, 120, fl);
-      desk(1160, fl - 34, 110, fl);
-      monitor(1006, fl - 58, 30, 20); monitor(1066, fl - 58, 30, 20);
-      monitor(1196, fl - 58, 30, 20);
-      chair(1015, fl); chair(1075, fl); chair(1205, fl);
-      person(1012, fl, { seated: true, arm: 'type', badge: ENTITIES.Person.color });
-      person(1072, fl, { seated: true, arm: 'type', badge: ENTITIES.Person.color });
-      robot(1240, fl, { arm: 'type', flip: true });
-      plant(1275, fl - 34);
-    }
-
-    function drawPermissions(q) {
-      var fl = F(q), ce = C(q);
-      lamp(1400, ce, 16);
-      hangSign(1560, ce, 'PERMISSIONS', ENTITIES.Permission.color);
-      // key cabinet
-      frameBoard(1310, 360, 74, 74);
-      var labels = ['VIEW', 'EDIT', 'ADMIN'];
-      for (var i = 0; i < 3; i++) {
-        var ky = 376 + i * 20;
-        lw(1); circle(1322, ky, 2, P.ink);
-        keyShape(1322, ky + 3, Math.sin(t * 2 + i) * 0.15);
-        text(labels[i], 1360, ky + 5, 7, 'center', 800);
-      }
-      // vault door
-      lw(1.6);
-      box(1508, 352, 88, 110);
-      circle(1552, 407, 26);
-      for (var s = 0; s < 4; s++) { var a = t * 0.3 + s * TAU / 4; line(1552, 407, 1552 + Math.cos(a) * 22, 407 + Math.sin(a) * 22); }
-      circle(1552, 407, 6, P.ink);
-      // clerk handing keys
-      person(1400, fl, { arm: 'forward', badge: ENTITIES.Person.color });
-      robot(1470, fl, { flip: true, arm: 'forward' });
-      person(1572, fl, { flip: true, arm: 'forward', badge: ENTITIES.Person.color });
-      // a key in flight, alternating recipients
-      var per = 4, c = Math.floor(t / per), u = (t - c * per) / per;
-      if (u < 0.7) {
-        var k = ease(u / 0.7), tx = c % 2 ? 1572 - 14 : 1470 - 16, ty = fl - 24;
-        var kx = lerp(1416, tx, k), ky2 = lerp(fl - 30, ty, k) - Math.sin(k * Math.PI) * 30;
-        keyShape(kx, ky2, k * 3);
-        text(c % 2 ? 'EDIT' : 'VIEW', kx, ky2 - 10, 6.5, 'center', 800);
-      }
-    }
     function keyShape(x, y, a) {
       ctx.save(); ctx.translate(x, y); ctx.rotate(a);
       lw(1.1);
@@ -1285,475 +989,984 @@
       ctx.restore();
     }
 
-    // the pneumatic tube from the document room to the project room
-    var TUBE = [[1452, 590], [1452, 548], [262, 548], [262, 586]];
-    var TUBE_LEN = (function () {
+    function envelope(x, y, w, color) {
+      var h = w * 0.66;
+      lw(1);
+      box(x - w / 2, y - h / 2, w, h, color || P.paper);
+      line(x - w / 2, y - h / 2, x, y + h * 0.1); line(x + w / 2, y - h / 2, x, y + h * 0.1);
+    }
+
+    function paper(x, y, w, h, label, fill) {
+      lw(1);
+      box(x, y, w, h, fill || P.paper);
+      if (label) text(label, x + w / 2, y + 5, Math.min(5.5, w / 4), 'center', 800);
+      ctx.save(); ctx.globalAlpha = 0.6; lw(0.6);
+      for (var i = y + (label ? 10 : 4); i < y + h - 2; i += 3.5) line(x + 3, i, x + w - 3, i);
+      ctx.restore();
+    }
+
+    function pipePath(pts, width) {
+      ctx.beginPath();
+      pts.forEach(function (p, i) { if (i) ctx.lineTo(p[0], p[1]); else ctx.moveTo(p[0], p[1]); });
+      ctx.lineJoin = 'round';
+      lw(width + 3); ctx.strokeStyle = P.ink; ctx.stroke();
+      lw(width); ctx.strokeStyle = P.paper; ctx.stroke();
+      ctx.strokeStyle = P.ink;
+    }
+    function pathLen(pts) {
       var L = 0;
-      for (var i = 1; i < TUBE.length; i++) L += Math.hypot(TUBE[i][0] - TUBE[i - 1][0], TUBE[i][1] - TUBE[i - 1][1]);
+      for (var i = 1; i < pts.length; i++) L += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
       return L;
-    })();
-    function alongTube(d) {
-      for (var i = 1; i < TUBE.length; i++) {
-        var a = TUBE[i - 1], b = TUBE[i], L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    }
+    function along(pts, d) {
+      for (var i = 1; i < pts.length; i++) {
+        var a = pts[i - 1], b = pts[i], L = Math.hypot(b[0] - a[0], b[1] - a[1]);
         if (d <= L) return [lerp(a[0], b[0], d / L), lerp(a[1], b[1], d / L)];
         d -= L;
       }
-      return TUBE[TUBE.length - 1];
-    }
-    function drawTube() {
-      ctx.lineJoin = 'round';
-      ctx.beginPath();
-      TUBE.forEach(function (p, i) { if (i) ctx.lineTo(p[0], p[1]); else ctx.moveTo(p[0], p[1]); });
-      lw(9); ctx.strokeStyle = P.ink; ctx.stroke();
-      lw(6); ctx.strokeStyle = P.paper; ctx.stroke();
-      ctx.strokeStyle = P.ink;
-      // bands
-      lw(1);
-      for (var x = 300; x < 1440; x += 70) line(x, 543, x, 553);
-      // capsules
-      for (var k = 0; k < 4; k++) {
-        var d = mod(t * 140 + k * TUBE_LEN / 4, TUBE_LEN);
-        var p = alongTube(d);
-        ctx.fillStyle = ENTITIES.Document.color;
-        ctx.beginPath(); ctx.arc(p[0], p[1], 3, 0, TAU); ctx.fill();
-      }
+      return pts[pts.length - 1];
     }
 
-    function drawProjects(q) {
-      var fl = F(q), ce = C(q);
-      lamp(370, ce + 10, 12);
-      hangSign(400, ce + 8, 'PROJECTS', ENTITIES.Project.color);
-      // corkboard with project folders
-      frameBoard(196, 600, 150, 74);
-      var names = ['LAUNCH', 'MIGRATE', 'HIRING'];
-      names.forEach(function (n, i) {
-        var fx = 206 + i * 46, fy = 612;
-        lw(1.1);
-        poly([fx, fy + 4, fx + 12, fy + 4, fx + 15, fy, fx + 38, fy, fx + 38, fy + 46, fx, fy + 46]);
-        ctx.fillStyle = ENTITIES.Project.color; ctx.fillRect(fx + 1, fy + 5, 3, 40);
-        text(n, fx + 20, fy + 14, 6, 'center', 800);
-        // task cards pinned inside
-        for (var j = 0; j < 2 + (i % 2); j++) { lw(0.7); box(fx + 8, fy + 20 + j * 8, 22, 6); }
-      });
-      // document tray under the tube outlet
-      lw(1.2); box(246, 590, 34, 8);
-      var tray = Math.floor(t * 140 / (TUBE_LEN / 4)) % 4;
-      for (var p = 0; p < 2 + tray % 2; p++) { lw(0.8); box(250 + p * 3, 584 - p * 2, 22, 6); }
-      // incoming slot for task cards
-      lw(1.2); box(452, fl - 44, 22, 22, P.ink);
-      // project lead
-      person(380, fl, { arm: 'up', flip: true, badge: ENTITIES.Person.color });
-      desk(300, fl - 32, 70, fl);
-      monitor(318, fl - 54, 30, 20);
-    }
-
-    function drawTaskLine(q) {
-      var fl = F(q), ce = C(q);
-      lamp(600, ce + 14, 10); lamp(900, ce + 14, 10);
-      hangSign(560, ce + 14, 'TASKS', ENTITIES.Task.color);
-      var by = fl - 34;
-      belt(476, 1110, by, -38, fl);
-      // assignment stamp
-      var stampX = 760;
-      var period = 3.2, speed = 38, startX = 1086;
-      var nearest = 1e9;
-      var cards = [];
-      for (var j = 0; j < 9; j++) {
-        var k = Math.floor(t / period) - j;
-        var age = t - k * period;
-        var x = startX - age * speed;
-        if (x < 470) continue;
-        var drop = clamp(age / 0.45, 0, 1);
-        cards.push({ k: k, x: x, y: lerp(by - 64, by - 24, ease(drop)) });
-        nearest = Math.min(nearest, Math.abs(x + 17 - stampX));
-      }
-      var press = clamp(1 - nearest / 14, 0, 1);
-      // stamp machine
-      lw(1.3);
-      box(stampX - 18, ce + 40, 36, 30);
-      text('ASSIGN', stampX, ce + 55, 7, 'center', 800);
-      line(stampX - 3, ce + 70, stampX - 3, by - 44 + press * 14);
-      line(stampX + 3, ce + 70, stampX + 3, by - 44 + press * 14);
-      box(stampX - 10, by - 44 + press * 14, 20, 8);
-      cards.forEach(function (c) {
-        var mark = c.x + 17 < stampX ? (c.k % 2 ? 'p' : 'r') : null;
-        taskCard(c.x, c.y, 34, 24, { mark: mark });
-        if (mod(c.k, 3) !== 1) {
-          // subtasks ride on top, tied to the parent
-          lw(0.8); line(c.x + 10, c.y, c.x + 10, c.y - 4);
-          taskCard(c.x + 4, c.y - 16, 18, 12);
-          if (mod(c.k, 3) === 0) { line(c.x + 26, c.y, c.x + 26, c.y - 4); taskCard(c.x + 20, c.y - 16, 16, 12); }
-        }
-      });
-      // the two kinds of assignee standing by the belt
-      person(640, fl, { arm: 'forward', badge: ENTITIES.Person.color });
-      robot(880, fl, { flip: true, arm: 'forward' });
-      // "task / subtask" legend on the wall
-      frameBoard(930, ce + 34, 100, 54);
-      taskCard(946, ce + 60, 30, 20);
-      lw(0.8); line(954, ce + 60, 954, ce + 56);
-      taskCard(948, ce + 42, 18, 13);
-      text('subtask', 1004, ce + 49, 7, 'center', 700);
-      text('parent', 1004, ce + 70, 7, 'center', 700);
-    }
-
-    function drawAutomation(q) {
-      var fl = F(q), ce = C(q);
-      lamp(1240, ce + 14, 10);
-      hangSign(1230, ce + 14, 'AUTOMATION', ENTITIES.Automation.color);
-      // machine body
-      lw(1.6);
-      box(1078, 574, 140, 104);
-      ctx.save(); ctx.globalAlpha = 0.5; hatch(1078, 660, 140, 18, 5, 0.6); ctx.restore();
-      gear(1112, 604, 20, 10, t * 1.2);
-      gear(1143, 624, 13, 8, -t * 1.85 + 0.2);
-      gear(1112, 642, 11, 7, -t * 2.2);
-      // rule panel
-      lw(1.1); box(1160, 584, 50, 46);
-      text('WHEN', 1170, 593, 6, 'left', 800);
-      text('IF', 1170, 606, 6, 'left', 800);
-      text('THEN', 1170, 619, 6, 'left', 800);
-      ctx.fillStyle = ENTITIES.Automation.color;
-      [593, 606, 619].forEach(function (y, i) { if (Math.sin(t * 2 - i) > 0) ctx.fillRect(1196, y - 2.5, 8, 5); });
-      // enabled lever
-      lw(1.4); line(1170, 650, 1186, 638); circle(1186, 638, 3, P.ink);
-      text('ON', 1200, 650, 6.5, 'center', 800);
-      // chute onto the belt
-      lw(1.3);
-      poly([1074, 640, 1074, 610, 1100, 610, 1100, fl - 70]);
-      // mechanic with a wrench
-      person(1282, fl, { arm: 'forward', flip: true, badge: ENTITIES.Person.color, cap: true });
-      lw(1.4); line(1262, fl - 30, 1254, fl - 38);
-    }
-
-    function drawDocuments(q) {
-      var fl = F(q), ce = C(q);
-      hangSign(1560, ce + 14, 'DOCUMENTS', ENTITIES.Document.color);
-      // filing cabinet with four kinds
-      lw(1.4);
-      box(1338, fl - 104, 52, 104);
-      ['DOC', 'FILE', 'NOTE', 'TEMPL.'].forEach(function (k, i) {
-        lw(1); box(1342, fl - 100 + i * 25, 44, 21);
-        line(1358, fl - 86 + i * 25, 1370, fl - 86 + i * 25);
-        text(k, 1364, fl - 93 + i * 25, 6.5, 'center', 800);
-      });
-      // printer feeding the tube
-      lw(1.3);
-      box(1430, 590, 44, 24);
-      var feed = mod(t * 0.9, 1);
-      box(1438, 590 - feed * 10, 28, 10);
-      // writing desk: a person and an agent both author
-      desk(1410, fl - 34, 190, fl);
-      monitor(1436, fl - 58, 28, 20); monitor(1538, fl - 58, 28, 20);
-      chair(1446, fl); chair(1578, fl);
-      person(1446, fl, { seated: true, arm: 'type', badge: ENTITIES.Person.color });
-      robot(1572, fl, { arm: 'type', flip: true });
-      // a page with a byline
-      lw(1); box(1496, fl - 52, 22, 18);
-      ctx.save(); ctx.globalAlpha = 0.7; lw(0.6); hlines(1499, fl - 52, 16, 18, 4); ctx.restore();
-    }
-
-    function drawProducts(q) {
-      var fl = F(q), ce = C(q);
-      hangSign(250, ce, 'PRODUCTS', ENTITIES.Product.color);
-      // spotlight
-      ctx.save();
-      ctx.globalAlpha = P.dark ? 0.1 : 0.06;
-      ctx.fillStyle = P.dark ? '#fff3c4' : P.ink;
-      ctx.beginPath(); ctx.moveTo(330, ce); ctx.lineTo(350, ce); ctx.lineTo(400, fl); ctx.lineTo(280, fl); ctx.fill();
-      ctx.restore();
-      // shelves
-      lw(1.3);
-      var shelves = [
-        [790, 'APP', [['CRM', '$49'], ['Mobile', '$9'], ['API', '$99']]],
-        [842, 'SERVICE', [['Setup', '$900'], ['Training', '$400'], ['Support', '$1,200']]],
-        [894, 'PLAN', [['Basic', '$9/mo'], ['Pro', '$19/mo'], ['Team', '$49/mo']]]
-      ];
-      shelves.forEach(function (s, i) {
-        var y = s[0];
-        line(200, y + 22, 452, y + 22);
-        for (var b = 0; b < 3; b++) {
-          var bx = 208 + b * 82, item = s[2][b];
-          lw(1.1);
-          box(bx, y - 4, 46, 26);
-          ctx.fillStyle = ENTITIES.Product.color; ctx.fillRect(bx + 1, y - 3, 44, 4);
-          text(item[0], bx + 23, y + 8, 7, 'center', 800);
-          text('kind: ' + s[1].toLowerCase(), bx + 23, y + 16, 4.5, 'center', 600);
-          lw(0.8);
-          box(bx + 50, y + 4, 26, 11);
-          text(item[1], bx + 63, y + 9.5, 5, 'center', 800);
-        }
-        lw(1.3);
-        if (i === 0) { line(200, y - 30, 200, fl); line(452, y - 30, 452, fl); }
-      });
-    }
-
-    var STAGES = ['LEAD', 'QUALIFIED', 'PROPOSAL', 'WON'];
-    function drawDeals(q) {
-      var fl = F(q), ce = C(q);
-      lamp(620, ce, 14); lamp(880, ce, 14);
-      hangSign(540, ce, 'DEALS', ENTITIES.Deal.color);
-      var by = fl - 30;
-      belt(480, 960, by, 45, fl);
-      var gates = [560, 680, 800, 920];
-      gates.forEach(function (gx, i) {
+    // An entity tag: the bridge between a thing in the building and the model.
+    function tag(x, y, ent, label) { TAGS.push([x, y, ent, label]); }
+    function drawTags() {
+      TAGS.forEach(function (g) {
+        var e = ENTITIES[g[2]], s = 7.5;
+        var label = g[2] + (g[3] ? ' · ' + g[3] : '');
+        var w = textW(label, s, 800) + 18, h = s + 7;
+        var x = g[0] - w / 2, y = g[1] - h / 2;
+        ctx.save();
+        ctx.globalAlpha *= focusK;
+        ctx.fillStyle = P.paper;
+        ctx.strokeStyle = e.color;
         lw(1.5);
-        line(gx - 22, by, gx - 22, by - 72);
-        line(gx + 22, by, gx + 22, by - 72);
-        ctx.beginPath(); ctx.arc(gx, by - 72, 22, Math.PI, 0); ctx.stroke();
-        var w = textW(STAGES[i], 7, 800) + 10;
-        lw(1); box(gx - w / 2, by - 106, w, 13, i === 3 ? hexA(ENTITIES.Deal.color, 0.3) : P.paper);
-        text(STAGES[i], gx, by - 99.5, 7, 'center', 800);
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(x, y, w, h, 3); else ctx.rect(x, y, w, h);
+        ctx.fill(); ctx.stroke();
+        ctx.fillStyle = e.color;
+        ctx.beginPath(); ctx.arc(x + 7, g[1], 2.8, 0, TAU); ctx.fill();
+        ctx.font = '800 ' + s + 'px ' + FONT;
+        ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = P.ink;
+        ctx.fillText(label, x + 13, g[1] + 0.5);
+        ctx.restore();
       });
-      // crates: one deal each, carrying its stage as a label
-      var period = 6, speed = 45;
-      for (var j = 0; j < 4; j++) {
-        var k = Math.floor(t / period) - j;
-        var x = 486 + (t - k * period) * speed;
-        if (x > 932) continue;
-        var passed = 0;
-        gates.forEach(function (gx) { if (x + 14 > gx) passed++; });
-        var stage = STAGES[Math.max(0, passed - 1)];
-        crate(x, by - 26, 28, 26);
-        var lab = 'stage: ' + stage;
-        var w = textW(lab, 6, 800) + 8;
-        lw(0.8); box(x + 14 - w / 2, by - 40, w, 10);
-        text(lab, x + 14, by - 35, 6, 'center', 800);
-        lw(0.7); line(x + 14, by - 30, x + 14, by - 26);
-      }
-      // the counterparty, shaking hands with sales
-      person(986, fl, { arm: 'forward', badge: ENTITIES.Person.color });
-      person(1014, fl, { arm: 'forward', flip: true, badge: ENTITIES.Organization.color });
-      text('SALES', 986, fl - 56, 6.5, 'center', 800);
-      text('CLIENT', 1014, fl - 66, 6.5, 'center', 800);
+      ctx.strokeStyle = P.ink;
     }
 
-    function drawInteractions(q) {
-      var fl = F(q), ce = C(q);
-      hangSign(1268, ce, 'INTERACTIONS', ENTITIES.Interaction.color);
-      // phone booth
+    // =========================================================================
+    // The building shell
+    // =========================================================================
+
+    function drawShell() {
+      ctx.strokeStyle = P.ink;
+      ctx.lineJoin = 'round';
+
+      // ground & earth
       lw(1.4);
-      box(1058, fl - 108, 46, 108);
-      box(1064, fl - 100, 34, 56);
-      text('CALL', 1081, fl - 100 + 64, 6.5, 'center', 800);
-      var ring = Math.sin(t * 22) * (mod(t, 3) < 1 ? 1.5 : 0);
-      lw(1.1); box(1074 + ring, fl - 84, 14, 9);
-      person(1082, fl - 2, { arm: 'hold', s: 0.9, badge: ENTITIES.Person.color });
-      // mail slot and laptop chat
-      lw(1.2);
-      box(1124, fl - 92, 40, 26);
-      line(1124, fl - 92, 1144, fl - 78); line(1164, fl - 92, 1144, fl - 78);
-      desk(1118, fl - 40, 70, fl);
-      lw(1.1); poly([1132, fl - 40, 1136, fl - 54, 1166, fl - 54, 1170, fl - 40]);
-      // meeting table with two people and an agent: one interaction
+      line(40, GROUND, W - 40, GROUND);
+      ctx.save();
+      ctx.globalAlpha = 0.55;
+      hatch(60, GROUND, W - 120, 210, 9, 0.7);
+      ctx.restore();
+      lw(0.8);
+      for (var g = 60; g < W - 60; g += 13) {
+        if (g > X0 - 60 && g < X1 + 10) continue;
+        line(g, GROUND, g - 2, GROUND - 4); line(g + 3, GROUND, g + 4, GROUND - 5);
+      }
+      // path to the front door
+      lw(1); line(40, GROUND + 6, X0, GROUND + 6);
+
+      // roofs
+      lw(1.6);
+      var lg = [160, 300, 410, 150, 660, 300];
+      poly(lg);
+      hatchPoly(lg, 7, 0.6);
+      poly([300, 300, 410, 214, 520, 300]);
+      vlines(300, 214, 220, 86, 8, 0.6);
+      lw(1.3); circle(410, 258, 16); line(394, 258, 426, 258); line(410, 242, 410, 274);
+      for (var i = 0; i < 4; i++) {
+        var sx = 640 + i * 162.5;
+        lw(1.5);
+        poly([sx, 300, sx, 230, sx + 162.5, 300]);
+        hatchPoly([sx + 4, 300, sx + 4, 240, sx + 158, 299], 6, 0.55);
+        lw(1.1);
+        box(sx + 2, 236, 6, 60);
+      }
+      lw(1.6);
+      poly([1252, 300, 1258, 110, 1290, 110, 1296, 300]);
+      vlines(1254, 112, 40, 186, 6, 0.6);
+      box(1250, 102, 48, 10);
+      var rg = [1272, 300, 1455, 178, 1640, 300];
+      lw(1.6);
+      poly(rg);
+      hatchPoly(rg, 7, 0.6);
+      windowFrame(1430, 238, 50, 40);
+      // company sign
       lw(1.3);
-      box(1210, fl - 34, 90, 5);
-      line(1255, fl - 29, 1255, fl);
-      person(1222, fl, { arm: 'forward', badge: ENTITIES.Person.color });
-      robot(1262, fl - 34);
-      person(1292, fl, { arm: 'forward', flip: true, badge: ENTITIES.Person.color });
-      // conversation bubbles drifting toward the deal they are about
-      var srcs = [[1086, fl - 95, 'call'], [1144, fl - 98, 'email'], [1150, fl - 64, 'chat'], [1255, fl - 92, 'meeting']];
-      for (var k = 0; k < 6; k++) {
-        var per = 6, phase = mod(t + k * per / 6, per) / per;
-        var s = srcs[k % 4];
-        var x = lerp(s[0], 1046, ease(phase)), y = s[1] - Math.sin(phase * Math.PI) * 26;
-        ctx.save(); ctx.globalAlpha = 1 - Math.pow(phase, 3);
-        var w = textW(s[2], 6.5, 800) + 10;
-        lw(1);
-        box(x - w / 2, y - 7, w, 13, phase > 0.02 ? P.paper : P.paper);
-        poly([x - 3, y + 6, x, y + 10, x + 3, y + 6], P.paper);
-        ctx.fillStyle = ENTITIES.Interaction.color; ctx.fillRect(x - w / 2 + 1, y - 6, 2.5, 11);
-        text(s[2], x + 1, y - 0.5, 6.5, 'center', 800);
+      line(860, 232, 860, 262); line(1070, 232, 1070, 262);
+      line(860, 262, 850, 300); line(1070, 262, 1080, 300);
+      box(830, 194, 270, 38);
+      text('ACME CLOUD', 965, 210, 18, 'center', 800);
+      text('software, since 2009', 965, 225, 7, 'center', 600);
+
+      // smoke
+      for (var k = 0; k < 7; k++) {
+        var age = mod(t * 0.9 + k * 1.15, 8);
+        ctx.save();
+        ctx.globalAlpha = 1 - age / 8;
+        lw(1.1);
+        circle(1274 + age * 22 + Math.sin(age * 1.7 + k) * 5, 92 - age * 11, 7 + age * 3.2);
         ctx.restore();
       }
-    }
 
-    function drawViews(q) {
-      var fl = F(q), ce = C(q);
-      hangSign(1560, ce, 'SAVED VIEWS', ENTITIES.SavedView.color);
-      var y = ce + 38;
-      // kanban
-      monitor(1356, y, 76, 54);
-      for (var c = 0; c < 3; c++) {
-        lw(0.6); line(1356 + (c + 1) * 25.3, y + 3, 1356 + (c + 1) * 25.3, y + 51);
-      }
-      var mv = mod(t / 2.5, 3);
-      for (var n = 0; n < 5; n++) {
-        var col = n < 2 ? 0 : n < 4 ? 1 : 2;
-        if (n === 1) col = Math.floor(mv);
-        lw(0.8); box(1360 + col * 25.3, y + 6 + (n % 2) * 12 + (n > 3 ? 24 : 0), 17, 8, n === 1 ? hexA(ENTITIES.Task.color, 0.45) : P.paper);
-      }
-      text('layout: kanban', 1394, y + 70, 6.5, 'center', 800);
-      // table
-      monitor(1442, y, 76, 54);
-      lw(0.6); hlines(1442, y, 76, 54, 9); line(1470, y, 1470, y + 54);
-      text('layout: table', 1480, y + 70, 6.5, 'center', 800);
-      // calendar
-      monitor(1528, y, 76, 54);
-      lw(0.6);
-      for (var i = 1; i < 7; i++) line(1528 + i * 10.85, y, 1528 + i * 10.85, y + 54);
-      hlines(1528, y, 76, 54, 13.5);
-      ctx.fillStyle = hexA(ENTITIES.SavedView.color, 0.6);
-      ctx.fillRect(1528 + 3 * 10.85 + 1, y + 13.5 + 1, 9, 12);
-      text('layout: calendar', 1566, y + 70, 6.5, 'center', 800);
-      // console + owner
-      desk(1440, fl - 34, 120, fl);
-      chair(1546, fl);
-      person(1546, fl, { seated: true, arm: 'type', badge: ENTITIES.Person.color });
-      lw(1); box(1470, fl - 46, 40, 12);
-      text('SAVE VIEW', 1490, fl - 40, 5.5, 'center', 800);
-    }
+      // room back walls
+      ROOMS.forEach(function (q) {
+        if (q.id === 'archive' || q.id === 'lift') return;
+        ctx.fillStyle = P.paper;
+        ctx.fillRect(q.x, q.y, q.w, q.h);
+        vlines(q.x, q.y + 5, q.w, q.h - 10, 7, 0.22);
+      });
+      ctx.fillStyle = P.paper;
+      ctx.fillRect(SH0, 300, SH1 - SH0, GROUND - 300);
 
-    function drawSubscriptions(q) {
-      var fl = F(q), ce = C(q);
-      hangSign(250, ce, 'SUBSCRIPTIONS', ENTITIES.Subscription.color);
-      var cx = 370, cy = 1068, r = 66;
-      var per = 6, a = t / per * TAU;
-      // stand
-      lw(1.6);
-      poly([cx - 40, fl, cx, cy, cx + 40, fl], false);
-      lw(1.5);
-      circle(cx, cy, r);
-      circle(cx, cy, r - 8, false);
-      for (var s = 0; s < 8; s++) { var b = a + s * TAU / 8; line(cx + Math.cos(b) * 14, cy + Math.sin(b) * 14, cx + Math.cos(b) * (r - 8), cy + Math.sin(b) * (r - 8)); }
-      circle(cx, cy, 16, hexA(ENTITIES.Subscription.color, 0.45));
-      text('RENEWS', cx, cy, 6, 'center', 800);
-      // riders: the product it is for, the party that holds it
-      var pa = a - Math.PI / 2, ha = a + Math.PI / 2;
-      lw(1.1);
-      var px1 = cx + Math.cos(pa) * r, py1 = cy + Math.sin(pa) * r;
-      box(px1 - 11, py1 - 9, 22, 18);
-      ctx.fillStyle = ENTITIES.Product.color; ctx.fillRect(px1 - 10, py1 - 8, 20, 3);
-      text('PLAN', px1, py1 + 2.5, 5.5, 'center', 800);
-      var hx = cx + Math.cos(ha) * r, hy = cy + Math.sin(ha) * r;
-      circle(hx, hy, 9, hexA(ENTITIES.Person.color, 0.35));
-      circle(hx, hy - 2.5, 2.6); line(hx - 4, hy + 4, hx + 4, hy + 4);
-      // the holder, watching
-      person(272, fl, { arm: 'up', badge: ENTITIES.Role.color });
-      text('CUSTOMER', 272, fl - 58, 6.5, 'center', 800);
-      // chute: an invoice falls out at every renewal
+      // archive (underground)
+      var A = ROOMS[13];
+      ctx.fillStyle = P.paper;
+      ctx.fillRect(A.x, A.y, A.w, A.h);
+      ctx.save(); ctx.globalAlpha = 0.18; hlines(A.x, A.y, A.w, A.h, 9); ctx.restore();
+      ctx.fillStyle = P.ink;
+      ctx.fillRect(A.x - 10, A.y - 6, A.w + 20, 8);
+      ctx.fillRect(A.x - 10, A.y + A.h, A.w + 20, 10);
+      ctx.fillRect(A.x - 10, A.y - 6, 10, A.h + 16);
+      ctx.fillRect(A.x + A.w, A.y - 6, 10, A.h + 16);
+
+      // floor slabs (they stop at the lift shaft) and outer walls
+      ctx.fillStyle = P.ink;
+      FLOORS.forEach(function (fy, n) {
+        if (n === 0 || n === FLOORS.length - 1) { ctx.fillRect(X0 - 6, fy - 5, X1 - X0 + 12, 10); return; }
+        ctx.fillRect(X0 - 6, fy - 5, SH0 - X0 + 6, 10);
+        ctx.fillRect(SH1, fy - 5, X1 - SH1 + 6, 10);
+      });
+      ctx.fillRect(X0 - 6, 300, 12, 1080 - 300);        // left wall, above the front door
+      ctx.fillRect(X1 - 6, 300, 12, GROUND - 300 + 5);
+
+      // partitions with doorways at floor level
+      function part(x, top, bottom, gap) { ctx.fillRect(x - 4, top, 8, bottom - top - (gap || 0)); }
+      part(1240, 300, 520, 56);
+      part(1240, 520, 740, 0);
+      part(1100, 740, 960, 56);
+      part(1100, 960, 1180, 56);
+      // lift shaft walls, open at every landing
+      for (var f = 0; f < 4; f++) {
+        part(SH0, FLOORS[f], FLOORS[f + 1], 58);
+        part(SH1, FLOORS[f], FLOORS[f + 1], 58);
+      }
+
+      // outside: tree by the path, delivery van round the back
       lw(1.3);
-      poly([440, 1060, 470, 1060, 520, fl - 26], false);
+      line(70, GROUND, 70, GROUND - 70);
+      for (var b = 0; b < 5; b++) circle(70 + Math.cos(b * 1.3) * 22, GROUND - 92 + Math.sin(b * 1.9) * 16, 20);
+      lw(1.2);
+      box(1700, GROUND - 44, 70, 34);
+      poly([1700, GROUND - 44, 1680, GROUND - 32, 1676, GROUND - 10, 1700, GROUND - 10]);
+      circle(1690, GROUND - 6, 7); circle(1752, GROUND - 6, 7);
+      text('POST', 1735, GROUND - 28, 8, 'center', 800);
+      // front door awning
+      lw(1.3);
+      poly([X0 - 34, 1066, X0 + 6, 1066, X0 + 6, 1076, X0 - 28, 1076]);
+      line(X0 - 30, 1076, X0 - 30, GROUND);
     }
 
-    function invoiceAt(k) {
-      // every renewal (6 s) prints one invoice that rides the belt to payments
-      var period = 6, age = t - k * period;
-      return { x: 470 + age * 62, age: age, paid: false };
-    }
-    function drawInvoicesAndPayments() {
-      var flI = F(ROOMS[13]), ce = C(ROOMS[13]);
-      hangSign(640, ce, 'INVOICES', ENTITIES.Invoice.color);
-      hangSign(1140, ce, 'PAYMENTS', ENTITIES.Payment.color);
-      var by = flI - 26;
-      belt(500, 1200, by, 62, flI);
-      // press
-      var pressX = 730;
-      var near = 1e9, nearPay = 1e9, payX = 1010;
-      var docs = [];
-      for (var j = 0; j < 4; j++) {
-        var k = Math.floor(t / 6) - j;
-        var d = invoiceAt(k);
-        if (d.x > 1180 || d.x < 470) continue;
-        docs.push({ k: k, x: d.x });
-        near = Math.min(near, Math.abs(d.x + 13 - pressX));
-        nearPay = Math.min(nearPay, Math.abs(d.x + 13 - payX));
+    // ---- the lift --------------------------------------------------------------
+    var LEVELS = [FL.D, FL.C, FL.B, FL.A];
+    function liftY() {
+      if (at(1)) {
+        if (ct < 8) return { y: FL.D, still: true };
+        if (ct < 11) return { y: lerp(FL.D, FL.C, ease((ct - 8) / 3)), still: false };
+        return { y: FL.C, still: true };
       }
-      var press = clamp(1 - near / 12, 0, 1);
+      // otherwise it potters between floors
+      var plan = [[0, 4, FL.D, FL.D], [4, 7, FL.D, FL.B], [7, 11, FL.B, FL.B], [11, 13, FL.B, FL.A],
+                  [13, 17, FL.A, FL.A], [17, 20, FL.A, FL.C], [20, 24, FL.C, FL.C], [24, 26, FL.C, FL.D]];
+      var u = mod(t, 26);
+      for (var i = 0; i < plan.length; i++) {
+        var p = plan[i];
+        if (u < p[1]) return { y: lerp(p[2], p[3], ease((u - p[0]) / (p[1] - p[0]))), still: p[2] === p[3] };
+      }
+      return { y: FL.D, still: true };
+    }
+    function drawLift(rider) {
+      var L = liftY(), yb = L.y;
+      lw(0.8);
+      ctx.save(); ctx.globalAlpha = 0.5;
+      line(SH0 + 8, 300, SH0 + 8, GROUND); line(SH1 - 8, 300, SH1 - 8, GROUND);
+      ctx.restore();
+      // pulley in the roof
+      lw(1.3); circle(650, 290, 9); circle(650, 290, 2, P.ink);
+      line(641, 290, 641, yb - 66); line(659, 290, 659, yb - 66);
+      // landing lamps
+      LEVELS.forEach(function (fy) {
+        circle(650, fy - 70, 2.4, L.still && Math.abs(L.y - fy) < 1 ? ENTITIES.Party.color : P.paper);
+      });
+      // cab
       lw(1.5);
-      box(pressX - 34, ce + 26, 68, 40);
-      ctx.save(); ctx.globalAlpha = 0.5; hatch(pressX - 34, ce + 26, 68, 40, 6, 0.6); ctx.restore();
-      lw(1.3); box(pressX - 22, ce + 34, 44, 18);
-      text('INVOICE', pressX, ce + 43, 7, 'center', 800);
-      line(pressX - 26, ce + 66, pressX - 26, by); line(pressX + 26, ce + 66, pressX + 26, by);
-      lw(1.4);
-      line(pressX, ce + 66, pressX, by - 36 + press * 10);
-      box(pressX - 14, by - 36 + press * 10, 28, 8);
-      // register + cashier
-      lw(1.4);
-      box(payX - 26, by - 74, 52, 36);
-      box(payX - 20, by - 70, 26, 12);
-      text('$', payX - 7, by - 64, 8, 'center', 800);
-      for (var kk = 0; kk < 3; kk++) circle(payX + 12, by - 66 + kk * 9, 2.4);
-      line(payX - 8, by - 38, payX - 8, by - 30);
-      person(1080, flI, { arm: 'forward', flip: true, badge: ENTITIES.Person.color });
-      // card reader
-      lw(1.1); box(1112, flI - 52, 14, 22);
-      ctx.fillStyle = ENTITIES.Payment.color; ctx.fillRect(1114, flI - 49, 10, 5);
-      // binder for settled invoices
-      lw(1.3); box(1180, flI - 60, 30, 60);
-      for (var bb = 0; bb < 4; bb++) { lw(0.8); line(1184 + bb * 6, flI - 56, 1184 + bb * 6, flI - 4); }
-      // invoices
-      docs.forEach(function (dd) {
-        var paid = dd.x + 13 > payX;
+      box(SH0 + 9, yb - 64, SH1 - SH0 - 18, 64);
+      if (rider) rider(650, yb);
+      lw(1.2);
+      if (L.still) { line(SH0 + 13, yb - 62, SH0 + 13, yb); line(SH1 - 13, yb - 62, SH1 - 13, yb); }
+      else { ctx.save(); ctx.globalAlpha = 0.6; hatch(SH0 + 9, yb - 64, SH1 - SH0 - 18, 64, 5, 0.6); ctx.restore(); line(650, yb - 64, 650, yb); }
+    }
+
+    // =========================================================================
+    // Rooms: places where work happens
+    // =========================================================================
+
+    // -- Dana's day ----------------------------------------------------------
+    var GLOBEX = ENTITIES.Organization.color;
+    function danaBadge() {
+      if (step < 4) return 'LEAD';
+      if (at(4)) return ct < 5 ? 'LEAD' : 'CUSTOMER';
+      return 'CUSTOMER';
+    }
+    function drawDana(x, fl, o) {
+      o = o || {};
+      person(x, fl, {
+        walk: o.walk, flip: o.flip, seated: o.seated, arm: o.arm,
+        badge: o.noBadge ? null : ENTITIES.Role.color, bag: o.seated ? null : GLOBEX
+      });
+    }
+
+    // -- Server room -----------------------------------------------------------
+    function drawServerRoom() {
+      var fl = FL.A, ce = CE.A;
+      hangSign(560, ce, 'SERVER ROOM');
+      lw(1); line(196, ce + 14, 420, ce + 14);
+      for (var r = 0; r < 4; r++) {
+        var rx = 200 + r * 54;
+        lw(1.5);
+        box(rx, 346, 44, fl - 346);
+        line(rx + 22, ce + 14, rx + 22, 346);
+        for (var u = 0; u < 12; u++) {
+          var uy = 352 + u * 13;
+          lw(0.8); box(rx + 4, uy, 36, 10);
+          ctx.fillStyle = flick(r * 20 + u, t) ? ENTITIES.Agent.color : P.paper;
+          ctx.fillRect(rx + 32, uy + 3, 4, 4);
+          ctx.fillStyle = flick(r * 20 + u + 7, t * 1.7) ? P.ink : P.paper;
+          ctx.fillRect(rx + 26, uy + 3, 3, 4);
+        }
+      }
+      // cooling fan
+      lw(1.3); circle(450, 365, 18);
+      for (var b = 0; b < 4; b++) {
+        var a = t * 6 + b * TAU / 4;
+        line(450, 365, 450 + Math.cos(a) * 15, 365 + Math.sin(a) * 15);
+      }
+      // agents resting on their docks
+      [480, 548].forEach(function (x, i) {
+        lw(1.2); box(x - 16, fl - 6, 32, 6);
+        robot(x, fl - 6, { arm: i ? 'down' : 'type', flip: !!i });
+        ctx.fillStyle = ENTITIES.Agent.color;
+        var ch = mod(t * 0.2 + i * 0.5, 1);
+        ctx.fillRect(x - 13, fl - 4, 26 * ch, 2);
+      });
+      lw(1); box(586, fl - 40, 20, 40);
+      text('UPS', 596, fl - 32, 5, 'center', 800);
+    }
+
+    // -- Engineering -----------------------------------------------------------
+    var ENG_SLOTS = [[852, 372], [852, 392], [852, 412]];
+    function drawEngineering() {
+      var fl = FL.A, ce = CE.A;
+      hangSign(1190, ce, 'ENGINEERING');
+      lamp(900, ce, 12); lamp(1120, ce, 12);
+      // tube from Operations comes up through the floor into a tray
+      pipePath([[715, 520], [715, 478]], 7);
+      lw(1.2); box(698, 466, 34, 9);
+      // project board
+      frameBoard(745, 336, 205, 100);
+      lw(0.8); line(847, 342, 847, 430);
+      text('BILLING V2', 796, 351, 6.5, 'center', 800);
+      for (var i = 0; i < 3; i++) taskCard(760 + (i % 2) * 40, 362 + Math.floor(i / 2) * 24, 34, 20, { mark: i % 2 ? 'r' : 'p' });
+      var onboarding = step >= 6;
+      if (onboarding) {
+        text('ONBOARD GLOBEX', 898, 351, 6.5, 'center', 800);
+        ctx.fillStyle = ENTITIES.Project.color; ctx.fillRect(851, 357, 94, 2);
+        var marks = ['p', 'r', 'p'];
+        for (var c = 0; c < 3; c++) {
+          var slot = ENG_SLOTS[c];
+          var x = slot[0], y = slot[1];
+          if (at(6)) {
+            var k = seg(0.6 + c * 2, 2 + c * 2);
+            if (k <= 0) continue;
+            x = lerp(708, slot[0], ease(k)); y = lerp(452, slot[1], ease(k)) - Math.sin(k * Math.PI) * 30;
+          }
+          taskCard(x, y, 34, 18, { mark: marks[c], hot: true });
+          if (c === 0) { lw(0.8); taskCard(x + 38, y + 2, 16, 12, { hot: true }); }
+        }
+        // the setup guide pinned beside the board
+        paper(956, 340, 22, 28, 'GUIDE', hexA(ENTITIES.Document.color, 0.25));
+      } else {
+        ctx.save(); ctx.globalAlpha = 0.35; text('(empty)', 898, 390, 6.5, 'center', 700); ctx.restore();
+      }
+      // team banner
+      lw(1.3); box(995, 334, 120, 24);
+      ctx.fillStyle = ENTITIES.Team.color; ctx.fillRect(996, 335, 5, 22);
+      text('TEAM PLATFORM', 1058, 346, 7.5, 'center', 800);
+      // Ana at the board
+      person(830, fl, { arm: 'up', badge: ENTITIES.Person.color });
+      // Kai and Agent-7 at their desks
+      desk(990, fl - 34, 110, fl);
+      monitor(1018, fl - 58, 32, 20, 'code');
+      chair(1030, fl);
+      person(1030, fl, { seated: true, arm: 'type', badge: ENTITIES.Person.color });
+      mug(1075, fl - 34);
+      desk(1118, fl - 34, 110, fl);
+      monitor(1142, fl - 58, 32, 20, 'code');
+      robot(1180, fl, { arm: step === 7 && ct > 1.6 && ct < 4.6 ? 'forward' : 'type', flip: true, key: step > 7 || (at(7) && ct > 4.6) });
+
+      if (at(6)) {
+        tag(848, 326, 'Project', 'Onboard Globex');
+        tag(1055, 324, 'Team', 'Platform');
+        tag(1030, fl - 66, 'Person', 'Kai');
+        tag(1180, fl - 76, 'Agent', 'Agent-7');
+        if (ct > 1.5) tag(800, 452, 'Task', '');
+        tag(967, 378, 'Document', 'guide');
+        DYN.ownedBy = [940, 340, 1000, 346];
+        DYN.memberOf = [1022, fl - 52, 1030, 360];
+        if (ct > 2) DYN.assignedA = [886, 381, 1018, fl - 44]; else delete DYN.assignedA;
+        if (ct > 4) DYN.assignedB = [886, 401, 1170, fl - 44]; else delete DYN.assignedB;
+        DYN.attached = [956, 356, 945, 372];
+      }
+      if (at(7)) {
+        tag(1180, fl - 76, 'Agent', 'Agent-7');
+        tag(1030, fl - 66, 'Person', 'Kai');
+        DYN.operated7 = [1170, fl - 50, 1040, fl - 52];
+      }
+    }
+
+    // -- IT & Security ---------------------------------------------------------
+    function drawIT() {
+      var fl = FL.A, ce = CE.A;
+      hangSign(1540, ce, 'IT & SECURITY');
+      lamp(1400, ce, 14);
+      frameBoard(1262, 346, 76, 84);
+      var labels = ['VIEW', 'EDIT', 'ADMIN'];
+      var handing = at(7) && ct > 1 && ct < 4.6;
+      for (var i = 0; i < 3; i++) {
+        var ky = 362 + i * 22;
+        lw(1); circle(1276, ky, 2, P.ink);
+        if (!(i === 1 && (handing || step > 7 || (at(7) && ct >= 4.6)))) keyShape(1276, ky + 3, Math.sin(t * 2 + i) * 0.12);
+        text(labels[i], 1312, ky + 6, 7, 'center', 800);
+      }
+      // security monitors
+      for (var m = 0; m < 3; m++) {
+        monitor(1360 + m * 44, 352, 36, 24);
         lw(1);
-        box(dd.x, by - 18, 26, 18, paid ? hexA(ENTITIES.Payment.color, 0.3) : P.paper);
-        text('INV', dd.x + 13, by - 13, 5.5, 'center', 800);
-        lw(0.6); line(dd.x + 4, by - 8, dd.x + 22, by - 8); line(dd.x + 4, by - 4, dd.x + 16, by - 4);
-        if (dd.x + 13 > pressX) text('$49', dd.x + 21, by - 4.5, 4.5, 'center', 800);
-        if (paid) {
-          ctx.save(); ctx.translate(dd.x + 13, by - 9); ctx.rotate(-0.25);
-          lw(1); ctx.strokeStyle = P.ink; ctx.strokeRect(-12, -4.5, 24, 9);
-          text('PAID', 0, 0.5, 6, 'center', 900);
+        var lx = 1378 + m * 44;
+        box(lx - 5, 364, 10, 8);
+        ctx.beginPath(); ctx.arc(lx, 364, 3.5, Math.PI, 0); ctx.stroke();
+      }
+      // secure door with keypad
+      lw(1.6); box(1546, fl - 96, 56, 96);
+      lw(1); box(1530, fl - 62, 10, 14);
+      ctx.fillStyle = mod(t, 2) < 1 ? ENTITIES.Permission.color : P.paper; ctx.fillRect(1532, fl - 60, 6, 3);
+      // Lee
+      var leeX = 1352;
+      person(leeX, fl, { flip: true, arm: handing ? 'forward' : 'down', badge: ENTITIES.Person.color, cap: true });
+      desk(1420, fl - 34, 100, fl);
+      monitor(1450, fl - 58, 30, 20, 'chart');
+      if (at(7)) {
+        var kx, ky2;
+        if (ct > 1 && ct < 2) { kx = lerp(1276, leeX - 16, ease(ct - 1)); ky2 = lerp(387, fl - 34, ease(ct - 1)); }
+        else if (ct >= 2 && ct < 4.6) {
+          var k = ease((ct - 2) / 2.6);
+          kx = lerp(leeX - 16, 1194, k); ky2 = lerp(fl - 34, fl - 22, k) - Math.sin(k * Math.PI) * 26;
+        }
+        if (kx != null) { keyShape(kx, ky2, ct * 3); tag(kx, ky2 - 14, 'Permission', 'EDIT'); }
+        if (ct >= 4.6) tag(1262, fl - 44, 'Permission', 'EDIT');
+        tag(leeX, fl - 70, 'Person', 'Lee');
+        DYN.granted = ct >= 4.6 ? [1226, fl - 38, 1194, fl - 26] : null;
+        if (!DYN.granted) delete DYN.granted;
+      }
+    }
+
+    // -- Product studio ------------------------------------------------------------
+    var PLANS = [['Basic', '$9/mo', 'plan'], ['Pro', '$19/mo', 'plan'], ['Team', '$49/mo', 'plan'], ['Setup', '$900', 'service']];
+    function drawStudio() {
+      var fl = FL.B, ce = CE.B;
+      hangSign(560, ce, 'PRODUCT STUDIO');
+      lamp(300, ce, 10);
+      frameBoard(196, 556, 244, 76);
+      PLANS.forEach(function (p, i) {
+        var x = 206 + i * 58, y = 566;
+        var hot = p[0] === 'Pro' && (at(2) || at(4));
+        lw(hot ? 1.8 : 1.1);
+        if (hot) ctx.strokeStyle = ENTITIES.Product.color;
+        box(x, y, 50, 56, hot ? hexA(ENTITIES.Product.color, 0.2) : P.paper);
+        ctx.strokeStyle = P.ink;
+        ctx.fillStyle = ENTITIES.Product.color; ctx.fillRect(x + 1, y + 1, 48, 4);
+        text(p[0], x + 25, y + 18, 8.5, 'center', 800);
+        text(p[1], x + 25, y + 33, 7, 'center', 700);
+        text(p[2], x + 25, y + 46, 5.5, 'center', 600);
+      });
+      // drafting table with a designer sketching
+      lw(1.3);
+      poly([470, fl - 54, 560, fl - 66, 562, fl - 60, 472, fl - 48]);
+      line(500, fl - 50, 494, fl); line(540, fl - 56, 546, fl);
+      var sk = mod(t * 0.4, 1);
+      lw(0.8);
+      ctx.beginPath();
+      for (var s = 0; s <= 10 * sk; s++) ctx.lineTo(482 + s * 6, fl - 56 - s * 0.6 + Math.sin(s * 1.7) * 2);
+      ctx.stroke();
+      person(586, fl, { flip: true, arm: 'forward', badge: ENTITIES.Person.color });
+      // a designer testing a prototype
+      desk(216, fl - 34, 130, fl);
+      lw(1.1); box(250, fl - 52, 12, 18); box(252, fl - 49, 8, 12);
+      chair(296, fl);
+      person(296, fl, { seated: true, arm: 'type', badge: ENTITIES.Person.color });
+      monitor(306, fl - 58, 30, 20, 'chart');
+      plant(380, fl);
+      if (at(2)) tag(290, 546, 'Product', 'Pro plan');
+    }
+
+    // -- Operations ------------------------------------------------------------
+    // Cards: ambient ones from other rules, and three for Globex in stop 5.
+    function opsCards() {
+      var list = [];
+      var period = 7;
+      if (!at(5)) {
+        for (var j = 0; j < 3; j++) {
+          var k = Math.floor(t / period) - j;
+          list.push({ age: t - k * period, k: k, hot: false });
+        }
+      } else {
+        [2, 3.6, 5.2].forEach(function (s, i) { list.push({ age: ct - s, k: i, hot: true }); });
+      }
+      return list;
+    }
+    function drawOps() {
+      var fl = FL.B, ce = CE.B;
+      hangSign(760, ce, 'OPERATIONS');
+      lamp(880, ce, 12);
+      var by = fl - 34;
+      // the rules machine
+      lw(1.6);
+      box(1076, 566, 150, 112);
+      ctx.save(); ctx.globalAlpha = 0.5; hatch(1076, 660, 150, 18, 5, 0.6); ctx.restore();
+      var fire = at(5) && ct > 1 && ct < 6;
+      var spin = fire ? 3 : 1;
+      gear(1104, 596, 18, 10, t * 1.2 * spin);
+      gear(1131, 615, 12, 8, -t * 1.8 * spin + 0.2);
+      gear(1104, 632, 10, 7, -t * 2.2 * spin);
+      lw(1.1); box(1146, 576, 72, 52);
+      var rows = at(5) || step > 5 ? ['WHEN deal won', 'IF plan = Pro', 'THEN add tasks'] : ['WHEN …', 'IF …', 'THEN …'];
+      rows.forEach(function (r, i) {
+        text(r, 1151, 586 + i * 14, 5.6, 'left', 800);
+        ctx.fillStyle = fire && Math.sin(t * 8 - i) > 0 ? ENTITIES.Automation.color : P.faint;
+        ctx.fillRect(1210, 583 + i * 14, 5, 5);
+      });
+      lw(1.4); line(1160, 650, 1176, 638); circle(1176, 638, 3, P.ink);
+      text('ON', 1192, 650, 6.5, 'center', 800);
+      // chute down to the belt
+      lw(1.3);
+      poly([1074, 650, 1074, 626, 1094, 626, 1094, by - 40], false);
+      belt(724, 1080, by, -45, fl);
+      // assignment stamp
+      var stampX = 930;
+      var cards = opsCards();
+      var nearest = 1e9;
+      cards.forEach(function (c) { c.x = 1066 - Math.max(0, c.age - 0.5) * 45; nearest = Math.min(nearest, Math.abs(c.x + 17 - stampX)); });
+      var press = clamp(1 - nearest / 14, 0, 1);
+      lw(1.3);
+      box(stampX - 18, ce + 34, 36, 26);
+      text('ASSIGN', stampX, ce + 47, 6.5, 'center', 800);
+      line(stampX - 3, ce + 60, stampX - 3, by - 46 + press * 14);
+      line(stampX + 3, ce + 60, stampX + 3, by - 46 + press * 14);
+      box(stampX - 10, by - 46 + press * 14, 20, 8);
+      // tube up to engineering
+      pipePath([[715, by - 2], [715, 520]], 7);
+      lw(1.2); poly([700, by - 2, 730, by - 2, 724, by - 12, 706, by - 12]);
+      var first = null;
+      cards.forEach(function (c) {
+        if (c.age < 0) return;
+        var y = c.age < 0.5 ? lerp(by - 60, by - 22, ease(c.age / 0.5)) : by - 22;
+        if (c.x < 724) {
+          // riding the tube up
+          var up = (724 - c.x) / 45 * 140;
+          if (up > by - 520) return;
+          ctx.fillStyle = ENTITIES.Task.color;
+          ctx.fillRect(712, by - 6 - up, 6, 6);
+          return;
+        }
+        var mark = c.x + 17 < stampX ? (c.k % 2 ? 'r' : 'p') : null;
+        taskCard(c.x, y, 34, 22, { mark: mark, hot: c.hot });
+        if (c.k % 3 === 0) {
+          lw(0.8); line(c.x + 10, y, c.x + 10, y - 4);
+          taskCard(c.x + 4, y - 15, 18, 11, { hot: c.hot });
+          line(c.x + 26, y, c.x + 26, y - 4);
+          taskCard(c.x + 20, y - 15, 15, 11, { hot: c.hot });
+          if (c.hot && !first) first = c;
+        }
+      });
+      // Sam keeps the machine running
+      person(1048, fl, { flip: true, arm: 'up', badge: ENTITIES.Person.color, cap: true });
+      lw(1.4); line(1036, fl - 44, 1030, fl - 52); circle(1029, fl - 54, 2.5, false);
+      // wall-mounted status screens
+      lw(1.2); line(780, ce + 70, 890, ce + 70);
+      monitor(790, ce + 38, 40, 26, 'chart');
+      monitor(838, ce + 38, 40, 26, 'chart');
+
+      if (at(5)) {
+        tag(1150, 556, 'Automation', 'onboarding rule');
+        tag(990, fl - 76, 'Person', 'Sam');
+        DYN.maintained = [1170, 678, 1058, fl - 46];
+        if (first && first.x > 760) {
+          tag(first.x + 17, by - 72, 'Task', 'Onboard Globex');
+          DYN.creates = [1080, 640, first.x + 30, by - 26];
+          DYN.subtask = [first.x + 14, by - 39, first.x + 6, by - 20];
+        } else { delete DYN.creates; delete DYN.subtask; }
+      }
+    }
+
+    // -- Support -----------------------------------------------------------------
+    var MAILTUBE = [[1060, 1012], [1060, 980], [1656, 980], [1656, 562], [1612, 562]];
+    var MAILTUBE_LEN = pathLen(MAILTUBE);
+    function drawSupport() {
+      var fl = FL.B, ce = CE.B;
+      hangSign(1560, ce, 'SUPPORT');
+      // wall screen: a view of tickets
+      var saved = step > 9 || (at(9) && ct > 7);
+      lw(1.5); box(1262, 550, 176, 82);
+      lw(1); line(1262, 562, 1438, 562);
+      text(saved ? '★ GLOBEX · OPEN' : 'ALL TICKETS', 1268, 556.5, 6, 'left', 800);
+      for (var c = 0; c < 3; c++) {
+        lw(0.6); line(1262 + (c + 1) * 58.7, 562, 1262 + (c + 1) * 58.7, 632);
+        var n = saved ? (c === 2 ? 0 : 1) : 3 - c + (c === 0 ? 1 : 0);
+        for (var i = 0; i < n; i++) {
+          lw(0.8);
+          box(1268 + c * 58.7, 568 + i * 14, 46, 10, saved ? hexA(ENTITIES.Organization.color, 0.25) : P.paper);
+        }
+      }
+      // tube outlet from the mailroom
+      lw(1.2); box(1584, 570, 30, 8);
+      // desks with headsets
+      desk(1262, fl - 34, 200, fl);
+      monitor(1288, fl - 60, 32, 22, 'chart');
+      monitor(1390, fl - 60, 32, 22, 'chart');
+      chair(1300, fl); chair(1402, fl);
+      person(1300, fl, { seated: true, arm: 'type', headset: true, badge: ENTITIES.Person.color });
+      person(1402, fl, { seated: true, arm: 'type', headset: true, badge: ENTITIES.Person.color });
+      var noorArm = at(9) && ct > 6 && ct < 8 ? 'up' : 'down';
+      person(1520, fl, { flip: true, arm: noorArm, badge: ENTITIES.Person.color });
+      mug(1440, fl - 34);
+      if (at(9)) {
+        // Dana's email: up the tube, onto Mia's screen
+        if (ct > 1.4 && ct < 3) {
+          var k = ease((ct - 1.4) / 1.6);
+          envelope(lerp(1598, 1304, k), lerp(566, fl - 74, k) - Math.sin(k * Math.PI) * 18, 12, hexA(ENTITIES.Interaction.color, 0.3));
+        }
+        if (ct >= 3) {
+          bubble(1304, fl - 86, 'How do I add users? —Dana', ENTITIES.Interaction.color);
+          tag(1304, fl - 106, 'Interaction', 'email');
+          DYN.involvesMia = [1290, fl - 80, 1294, fl - 48];
+        }
+        if (ct > 5) bubble(1360, fl - 68, 'Settings → Team → Invite', null);
+        tag(1300, fl - 4, 'Person', 'Mia');
+        tag(1520, fl - 68, 'Person', 'Noor');
+        if (saved) {
+          tag(1350, 542, 'SavedView', 'Globex · open');
+          DYN.createdBy = [1438, 600, 1510, fl - 50];
+        }
+      }
+    }
+    function bubble(x, y, s, color) {
+      var w = textW(s, 6, 700) + 10;
+      lw(1);
+      box(x - w / 2, y - 6, w, 12);
+      poly([x - 3, y + 6, x, y + 10, x + 3, y + 6]);
+      if (color) { ctx.fillStyle = color; ctx.fillRect(x - w / 2 + 1, y - 5, 2.5, 10); }
+      text(s, x + 1, y + 0.5, 6, 'center', 700);
+    }
+
+    // -- Sales -----------------------------------------------------------------
+    var STAGES = ['LEAD', 'QUALIFIED', 'PROPOSAL', 'WON'];
+    var COLX = [232, 300, 368, 436];
+    var OTHER_DEALS = [[0, 0, 'NORTHWIND'], [0, 1, 'TAILSPIN'], [1, 0, 'CONTOSO'], [2, 0, 'LITWARE'], [3, 0, 'FABRIKAM']];
+    function folder(x, y, label, hot) {
+      lw(hot ? 1.6 : 1);
+      if (hot) ctx.strokeStyle = ENTITIES.Deal.color;
+      poly([x, y + 3, x + 10, y + 3, x + 12, y, x + 56, y, x + 56, y + 15, x, y + 15], hot ? hexA(ENTITIES.Deal.color, 0.3) : P.paper);
+      ctx.strokeStyle = P.ink;
+      text(label, x + 28, y + 9, 5.5, 'center', 800);
+    }
+    // where the Globex folder is right now
+    function globexFolder() {
+      if (step < 2) return null;
+      if (at(2)) {
+        if (ct < 1) return null;
+        var col = 0, k = 1;
+        if (ct > 4.5) { col = 1; k = seg(4.5, 5.3); }
+        if (ct > 8) { col = 2; k = seg(8, 8.8); }
+        var x = lerp(COLX[Math.max(0, col - 1)], COLX[col], ease(k)) - 28;
+        return { place: 'board', x: x, y: 798 + (col === 0 ? 2 : 1) * 18 - (col === 0 ? 0 : 0), col: col };
+      }
+      if (at(3)) return { place: 'meeting' };
+      if (at(4)) return { place: 'contracts' };
+      return { place: 'board', x: COLX[3] - 28, y: 816, col: 3 };
+    }
+    function drawSales() {
+      var fl = FL.C, ce = CE.C;
+      hangSign(560, ce, 'SALES');
+      lamp(350, ce, 8);
+      frameBoard(196, 768, 276, 112);
+      STAGES.forEach(function (s, i) {
+        text(s, COLX[i], 782, 6.5, 'center', 800);
+        if (i) { lw(0.7); line(COLX[i] - 34, 776, COLX[i] - 34, 874); }
+      });
+      OTHER_DEALS.forEach(function (d) { folder(COLX[d[0]] - 28, 798 + d[1] * 18, d[2], false); });
+      var g = globexFolder();
+      if (g && g.place === 'board') folder(g.x, g.y, 'GLOBEX · PRO', true);
+      // the bell that rings when a deal is won
+      var ring = at(4) && ct > 5 && ct < 8;
+      lw(1.2);
+      ctx.save(); ctx.translate(598, 786); ctx.rotate(ring ? Math.sin(t * 30) * 0.4 : 0);
+      poly([-7, 10, -5, 0, 5, 0, 7, 10]); circle(0, 12, 2, P.ink);
+      ctx.restore();
+      line(598, ce, 598, 786);
+      // Ravi: at the board in stop 2, at his desk otherwise
+      desk(486, fl - 34, 120, fl);
+      monitor(512, fl - 58, 30, 20, 'chart');
+      lw(1.1); box(560, fl - 40, 12, 6);
+      var raviHere = !(at(3) || at(4));
+      if (at(2)) {
+        var rx = g ? g.x + 70 : 486;
+        person(clamp(rx, 300, 520), fl, { arm: g ? 'up' : 'down', flip: true, badge: ENTITIES.Person.color });
+      } else if (raviHere) {
+        chair(530, fl);
+        person(530, fl, { seated: true, arm: 'phone', badge: ENTITIES.Person.color });
+      }
+      // Lin on the phone at the other end
+      chair(560, fl, true);
+      person(580, fl, { seated: true, flip: true, arm: 'phone', badge: ENTITIES.Person.color });
+      if (at(2) && g) {
+        tag(g.x + 28, g.y + 26, 'Deal', 'stage: ' + STAGES[g.col]);
+        DYN.dealFor = [g.x + 20, g.y, 262 + 25, 622];
+        DYN.dealWith = [g.x + 56, g.y + 8, 744, fl - 44];
+      }
+    }
+
+    // -- Meeting room ----------------------------------------------------------
+    function drawMeeting() {
+      var fl = FL.C, ce = CE.C;
+      hangSign(1030, ce, 'MEETING ROOM');
+      lamp(890, ce, 14);
+      // wall screen
+      lw(1.4); box(760, 764, 120, 56);
+      if (at(3)) {
+        text('PROPOSAL', 820, 780, 8, 'center', 800);
+        text('Globex · Pro plan', 820, 794, 6.5, 'center', 700);
+        lw(0.6); line(780, 806, 860, 806); line(780, 812, 840, 812);
+      } else { monitor(760, 764, 120, 56, 'chart'); }
+      windowFrame(980, 776, 40, 50);
+      // table and chairs
+      lw(1.3);
+      box(770, fl - 36, 250, 6);
+      line(800, fl - 30, 800, fl); line(990, fl - 30, 990, fl);
+      chair(752, fl); chair(1030, fl, true);
+      var meeting = at(3);
+      if (at(2) || meeting) {
+        // Dana, waiting then meeting
+        drawDana(752, fl, { seated: true, arm: meeting ? 'forward' : 'down' });
+        mug(786, fl - 36);
+      }
+      if (meeting) {
+        person(1030, fl, { seated: true, flip: true, arm: 'hold', badge: ENTITIES.Person.color });
+        lw(1); poly([1002, fl - 46, 1014, fl - 46, 1015, fl - 34, 1001, fl - 34], hexA(ENTITIES.Deal.color, 0.3));
+        // the note-taking agent
+        robot(890, fl - 36, { arm: 'type' });
+        var talk = Math.floor(ct / 2.2) % 2;
+        if (ct > 0.8) bubble(talk ? 990 : 790, fl - 84, talk ? 'Pro has SSO, yes.' : 'Does Pro include SSO?', ENTITIES.Interaction.color);
+        if (ct > 4) {
+          var k = ease(seg(4, 6));
+          paper(lerp(878, 842, k), lerp(fl - 74, fl - 54, k), 20, 18, 'NOTES', hexA(ENTITIES.Document.color, 0.3));
+        }
+        tag(920, fl - 116, 'Interaction', 'meeting');
+        tag(752, fl - 6, 'Person', 'Dana');
+        tag(1030, fl - 6, 'Person', 'Ravi');
+        tag(895, fl - 12, 'Agent', 'note-taker');
+        DYN.involvesA = [878, fl - 110, 762, fl - 54];
+        DYN.regarding = [968, fl - 110, 1008, fl - 50];
+        if (ct > 6) tag(832, fl - 66, 'Document', 'notes');
+      } else if (!at(2)) {
+        // an internal stand-up when Dana isn't here
+        person(810, fl, { arm: 'forward', badge: ENTITIES.Person.color });
+        person(960, fl, { flip: true, arm: 'down', badge: ENTITIES.Person.color });
+        if (mod(t, 6) < 3) bubble(810, fl - 64, 'Ship it Friday?', null);
+        else bubble(960, fl - 64, 'Friday works.', null);
+      }
+      if (at(2)) {
+        tag(752, fl - 62, 'Person', 'Dana');
+      }
+    }
+
+    // -- Contracts -------------------------------------------------------------
+    function drawContracts() {
+      var fl = FL.C, ce = CE.C;
+      hangSign(1180, ce, 'CONTRACTS');
+      lamp(1310, ce, 14);
+      // binders
+      for (var s = 0; s < 2; s++) {
+        var sy = 784 + s * 40;
+        lw(1.2); line(1440, sy + 30, 1600, sy + 30);
+        for (var b = 0; b < 11; b++) { lw(0.9); box(1444 + b * 14, sy + (b % 3 === 0 ? 4 : 0), 10, 30 - (b % 3 === 0 ? 4 : 0)); }
+      }
+      // hopper and chute down to Finance
+      lw(1.3); poly([1550, 900, 1590, 900, 1578, 916, 1562, 916]);
+      pipePath([[1570, 916], [1570, 1004]], 8);
+      // Omar behind the desk
+      var stamp = at(4) && ct > 3.8 && ct < 4.6;
+      person(1380, fl, { flip: true, arm: stamp ? 'up' : 'forward', badge: ENTITIES.Person.color });
+      desk(1220, fl - 36, 170, fl);
+      ctx.save(); ctx.globalAlpha = 0.5; hatch(1220, fl - 31, 170, 31, 6, 0.5); ctx.restore();
+      paper(1292, fl - 52, 34, 16, 'CONTRACT');
+      if (at(4) || step > 4) {
+        ctx.save(); ctx.translate(1320, fl - 44); ctx.rotate(-0.2);
+        if (step > 4 || ct > 4) { lw(1); ctx.strokeStyle = ENTITIES.Subscription.color; ctx.strokeRect(-8, -3, 16, 7); ctx.strokeStyle = P.ink; }
+        ctx.restore();
+      }
+      lw(1.2); box(1350, fl - 46 + (stamp ? 4 : 0), 10, 6); line(1355, fl - 46 + (stamp ? 4 : 0), 1355, fl - 52 + (stamp ? 4 : 0));
+      if (at(4)) {
+        var g = globexFolder();
+        if (g) folder(1226, fl - 51, 'GLOBEX · PRO', true);
+        // Dana walks in from the meeting room and signs
+        var dx = lerp(1060, 1204, ease(seg(0, 2.5)));
+        var walking = ct < 2.5;
+        drawDana(dx, fl, { walk: walking ? t * 9 : null, arm: ct > 2.5 && ct < 3.8 ? 'forward' : 'down' });
+        // Ravi follows and cheers at the end
+        person(lerp(1030, 1150, ease(seg(0.4, 2.8))), fl, { walk: ct < 2.8 ? t * 9 : null, arm: ct > 5 ? 'cheer' : 'down', badge: ENTITIES.Person.color });
+        // sparkle as the badge changes
+        if (ct > 4.8 && ct < 5.6) {
+          ctx.save(); ctx.globalAlpha = 1 - Math.abs(ct - 5.2) / 0.4;
+          lw(1);
+          for (var i = 0; i < 6; i++) { var a = i * TAU / 6; line(dx + 4 + Math.cos(a) * 9, fl - 30 + Math.sin(a) * 9, dx + 4 + Math.cos(a) * 14, fl - 30 + Math.sin(a) * 14); }
           ctx.restore();
         }
-      });
-      // coin dropping as an invoice reaches the register
-      var cp = clamp(1 - nearPay / 30, 0, 1);
-      if (cp > 0) {
-        var cy = by - 38 + (1 - cp) * 0 + cp * 18;
-        circle(payX - 8, cy, 4, hexA(ENTITIES.Payment.color, 0.8));
+        tag(dx, fl - 72, 'Role', danaBadge() + ' @ Acme');
+        // the subscription card: written, then dropped to Finance
+        if (ct > 6) {
+          var k1 = ease(seg(6, 7.4)), k2 = ease(seg(7.6, 9.4));
+          var cx = lerp(1320, 1570, k1), cy = lerp(fl - 70, 896, k1) + k2 * 110;
+          if (k2 < 1) {
+            lw(1.2); box(cx - 16, cy - 9, 32, 18, hexA(ENTITIES.Subscription.color, 0.35));
+            text('GLOBEX', cx, cy - 2, 5.5, 'center', 800);
+            text('PRO · monthly', cx, cy + 4.5, 4.5, 'center', 700);
+            tag(cx, cy - 20, 'Subscription', 'Pro, monthly');
+            DYN.heldBy = [cx - 16, cy, dx + 8, fl - 44];
+          } else delete DYN.heldBy;
+        }
+      } else {
+        // Omar's paperwork when no one is signing
+        person(1250, fl, { arm: 'forward', badge: ENTITIES.Person.color });
       }
     }
 
-    function drawLobby(q) {
-      var fl = F(q), ce = C(q);
-      lamp(1340, ce, 20); lamp(1500, ce, 20);
-      sign(1420, ce + 30, 'WELCOME', 12);
-      // reception
+    // -- Reception -------------------------------------------------------------
+    function danaInLobby() {
+      // returns Dana's x and pose during stop 1, or null once in the lift
+      if (!at(1)) return null;
+      if (ct < 3.5) return { x: lerp(110, 506, ease(ct / 3.5)), walk: true, flip: false };
+      if (ct < 6) return { x: 506, walk: false, flip: true, arm: ct > 4.8 ? 'forward' : 'down' };
+      if (ct < 7.6) return { x: lerp(506, 650, ease((ct - 6) / 1.6)), walk: true, flip: false };
+      return null;
+    }
+    function drawLobby() {
+      var fl = FL.D, ce = CE.D;
+      sign(400, ce + 24, 'ACME CLOUD · RECEPTION', 11);
+      lamp(300, ce, 22); lamp(500, ce, 22);
+      windowFrame(540, 1010, 50, 54);
+      // revolving door in the front wall
       lw(1.4);
-      box(1260, fl - 40, 90, 40);
-      ctx.save(); ctx.globalAlpha = 0.5; hatch(1260, fl - 40, 90, 40, 6, 0.6); ctx.restore();
-      person(1300, fl - 40, { arm: 'forward', badge: ENTITIES.Person.color, s: 0.9 });
-      // revolving door in the outer wall
-      lw(1.4);
-      line(X1 - 6, 1080, X1 - 6, fl);
-      line(X1 + 6, 1080, X1 + 6, fl);
+      line(X0 - 8, 1080, X0 - 8, fl); line(X0 + 8, 1080, X0 + 8, fl);
       lw(1.2);
-      line(X1, 1084, X1, fl);
       for (var p = 0; p < 3; p++) {
-        var a = t * 0.8 + p * Math.PI / 3;
-        var dx = Math.cos(a) * 28;
-        line(X1 + dx, 1084, X1 + dx, fl);
+        var dx = Math.cos(t * 0.8 + p * Math.PI / 3) * 22;
+        line(X0 + dx, 1084, X0 + dx, fl);
       }
-      ctx.save(); ctx.globalAlpha = 0.25; hatch(X1 - 30, 1082, 60, fl - 1082, 10, 0.5); ctx.restore();
-      // visitors walking in
-      for (var k = 0; k < 2; k++) {
-        var u = mod(t / 14 + k / 2, 1);
-        var vx = lerp(1600, 1380, u);
-        ctx.save(); ctx.globalAlpha = u < 0.06 ? u / 0.06 : u > 0.92 ? (1 - u) / 0.08 : 1;
-        if (k) robot(vx, fl, { flip: true }); else person(vx, fl, { walk: t * 9, flip: true, badge: ENTITIES.Organization.color });
-        ctx.restore();
+      ctx.save(); ctx.globalAlpha = 0.25; hatch(X0 - 24, 1082, 48, fl - 1082, 10, 0.5); ctx.restore();
+      // waiting seats with a visitor reading
+      chair(560, fl, true);
+      person(576, fl, { seated: true, flip: true, arm: 'hold', badge: ENTITIES.Role.color });
+      plant(605, fl);
+      plant(214, fl);
+      // reception desk and Jo
+      var printing = at(1) && ct > 3.8 && ct < 4.8;
+      person(430, fl, { arm: at(1) && ct > 4.6 && ct < 5.6 ? 'forward' : 'type', badge: ENTITIES.Person.color });
+      lw(1.4);
+      box(370, fl - 42, 110, 42);
+      ctx.save(); ctx.globalAlpha = 0.5; hatch(370, fl - 42, 110, 42, 6, 0.6); ctx.restore();
+      lw(1.1); box(380, fl - 54, 28, 12);
+      text('BADGES', 394, fl - 48, 4.5, 'center', 800);
+      monitor(440, fl - 66, 26, 18, 'chart');
+      var d = danaInLobby();
+      if (printing) {
+        var k = seg(3.8, 4.8);
+        lw(1); box(386, fl - 54 - k * 10, 14, 10, hexA(ENTITIES.Role.color, 0.4));
       }
-      plant(1580, fl); plant(1240, fl);
+      if (at(1) && ct >= 4.8 && ct < 5.6) {
+        var k2 = ease(seg(4.8, 5.6));
+        lw(1); box(lerp(390, 496, k2), fl - 62 + k2 * 12, 12, 9, hexA(ENTITIES.Role.color, 0.4));
+      }
+      if (d) {
+        drawDana(d.x, fl, { walk: d.walk ? t * 9 : null, flip: d.flip, arm: d.arm, noBadge: ct < 5.6 });
+        var side = d.x > 540 ? -1 : 1;
+        tag(d.x, fl - 66, 'Person', 'Dana');
+        tag(d.x + (d.flip ? 40 : -40), fl - 10, 'Organization', 'Globex');
+        if (ct >= 5.6) {
+          var rx = d.x + side * 78, ry = fl - 46;
+          tag(rx, ry, 'Role', 'LEAD @ Acme');
+          DYN.plays = [d.x + side * 7, fl - 30, rx - side * 42, ry + 3];
+          DYN.at = [rx, ry - 8, 520, ce + 34];
+        } else { delete DYN.plays; delete DYN.at; }
+      } else if (at(1)) {
+        delete DYN.plays; delete DYN.at;
+      }
     }
 
+    // -- Mailroom ----------------------------------------------------------------
+    function drawMailroom() {
+      var fl = FL.D, ce = CE.D;
+      hangSign(760, ce, 'MAILROOM');
+      // pigeonholes
+      frameBoard(700, 996, 120, 92);
+      for (var r = 0; r < 4; r++) for (var c = 0; c < 4; c++) {
+        lw(0.7); box(704 + c * 28, 1000 + r * 21, 28, 21, false);
+        if ((r * 4 + c + Math.floor(t / 3)) % 3) { lw(0.8); box(708 + c * 28, 1010 + r * 21, 18, 10); }
+      }
+      // Bo sorts the post
+      person(842, fl, { flip: true, arm: mod(t, 2) < 1 ? 'up' : 'forward', badge: ENTITIES.Person.color });
+      // counter with out/in trays
+      lw(1.4); box(870, fl - 40, 130, 40);
+      lw(1.1); box(880, fl - 48, 44, 8); box(946, fl - 48, 44, 8);
+      text('OUT', 902, fl - 54, 6, 'center', 800);
+      text('IN', 968, fl - 54, 6, 'center', 800);
+      // mail tube intake (to Support, via the outside wall)
+      lw(1.2); poly([1046, 1012, 1074, 1012, 1068, 1024, 1052, 1024]);
+      // sacks
+      lw(1.2); poly([1020, fl, 1016, fl - 26, 1030, fl - 34, 1044, fl - 26, 1040, fl]);
+      // belt through the doorway to Finance
+      belt(1000, 1280, fl - 22, at(8) && ct > 8.4 ? 40 : -40, null);
+      // envelopes riding the tube now and then
+      for (var k = 0; k < 2; k++) {
+        if (at(9)) break;
+        var dd = mod(t * 110 + k * MAILTUBE_LEN / 2, MAILTUBE_LEN * 1.6);
+        if (dd > MAILTUBE_LEN) continue;
+        var p = along(MAILTUBE, dd);
+        ctx.fillStyle = ENTITIES.Interaction.color; ctx.fillRect(p[0] - 3, p[1] - 2, 6, 4);
+      }
+      if (at(9) && ct < 1.6) {
+        var q = along(MAILTUBE, seg(0, 1.6) * MAILTUBE_LEN);
+        ctx.fillStyle = ENTITIES.Interaction.color; ctx.fillRect(q[0] - 4, q[1] - 3, 8, 6);
+      }
+    }
+
+    // -- Finance -------------------------------------------------------------------
+    function wheelAngle() {
+      // the subscriptions wheel clicks round, one card at a time
+      var stepA = TAU / 10;
+      if (at(8)) return -Math.PI / 2 + stepA * (1 - ease(seg(1, 2)));
+      if (at(4) || step < 4) return -Math.PI / 2 + stepA * Math.floor(t / 5) + stepA * ease(mod(t, 5) - 4);
+      return -Math.PI / 2 + stepA;
+    }
+    function drawFinance() {
+      var fl = FL.D, ce = CE.D;
+      hangSign(1180, ce, 'FINANCE');
+      lamp(1300, ce, 14);
+      // calendar
+      lw(1.2); box(1134, 996, 40, 40);
+      ctx.fillStyle = ENTITIES.Invoice.color; ctx.fillRect(1135, 997, 38, 8);
+      var month = step < 8 || (at(8) && ct < 1) ? 'OCT' : 'NOV';
+      text(month, 1154, 1018, 10, 'center', 800);
+      // subscriptions wheel
+      var wx = 1510, wy = 1068, R = 54;
+      lw(1.6); poly([wx - 34, fl, wx, wy, wx + 34, fl], false);
+      circle(wx, wy, R);
+      circle(wx, wy, 12, hexA(ENTITIES.Subscription.color, 0.45));
+      var a0 = wheelAngle();
+      var hasGlobex = step > 4 || (at(4) && ct > 9.4);
+      for (var i = 0; i < 10; i++) {
+        var a = a0 + i * TAU / 10;
+        var cx = wx + Math.cos(a) * (R - 12), cy = wy + Math.sin(a) * (R - 12);
+        lw(0.9); line(wx + Math.cos(a) * 12, wy + Math.sin(a) * 12, cx, cy);
+        var gl = i === 0 && hasGlobex;
+        ctx.save(); ctx.translate(cx, cy); ctx.rotate(a + Math.PI / 2);
+        lw(gl ? 1.5 : 0.9);
+        if (gl) ctx.strokeStyle = ENTITIES.Subscription.color;
+        box(-8, -5, 16, 10, gl ? hexA(ENTITIES.Subscription.color, 0.45) : P.paper);
+        ctx.restore();
+        ctx.strokeStyle = P.ink;
+      }
+      text('SUBSCRIPTIONS', wx, fl - 4, 5.5, 'center', 800);
+      // Priya at her desk, with the printer
+      desk(1214, fl - 34, 150, fl);
+      monitor(1236, fl - 58, 30, 20, 'chart');
+      chair(1290, fl);
+      person(1290, fl, { seated: true, arm: 'type', badge: ENTITIES.Person.color });
+      lw(1.3); box(1380, fl - 70, 40, 22); line(1384, fl - 48, 1384, fl); line(1416, fl - 48, 1416, fl);
+      text('PRINT', 1400, fl - 59, 5.5, 'center', 800);
+      // card reader
+      lw(1.1); box(1340, fl - 46, 10, 12);
+
+      if (at(8)) {
+        var invY = fl - 46;
+        // printer: two copies, one stays, one goes out
+        if (ct > 2.2) {
+          var p1 = ease(seg(2.2, 3.4));
+          var copyX = lerp(1386, 1312, p1), copyY = lerp(fl - 80, invY, p1);
+          var paid = ct > 11.2;
+          paper(copyX, copyY, 22, 14, paid ? 'PAID' : 'INV', paid ? hexA(ENTITIES.Payment.color, 0.35) : hexA(ENTITIES.Invoice.color, 0.25));
+          tag(copyX + 10, copyY - 12, 'Invoice', 'INV-0042 · $19');
+          DYN.bills = [copyX + 22, copyY + 4, wx - 6, wy - R + 4];
+        }
+        if (ct > 3.6 && ct < 7.4) {
+          var p2 = seg(3.6, 7);
+          var ex = lerp(1300, 900, p2);
+          paper(ex, fl - 36, 18, 13, 'INV', hexA(ENTITIES.Invoice.color, 0.25));
+        }
+        if (ct > 7 && ct < 8.2) { ctx.save(); ctx.globalAlpha = 1 - seg(7.4, 8.2); envelope(902, fl - 54, 14); ctx.restore(); }
+        // the payment comes back in
+        if (ct > 8.4 && ct < 11.2) {
+          var p3 = ease(seg(8.4, 11.2));
+          var px1 = p3 < 0.15 ? 968 : lerp(968, 1320, (p3 - 0.15) / 0.85);
+          var py1 = p3 < 0.15 ? fl - 54 : fl - 30 - (px1 > 1290 ? (px1 - 1290) : 0);
+          envelope(px1, py1, 14, hexA(ENTITIES.Payment.color, 0.5));
+          tag(px1, py1 - 16, 'Payment', '$19');
+          DYN.settles = [px1 + 7, py1 - 4, 1318, fl - 44];
+        } else delete DYN.settles;
+        tag(wx, wy - R - 14, 'Subscription', 'Globex');
+        tag(1290, fl - 6, 'Person', 'Priya');
+      }
+    }
+
+    // -- Archive -------------------------------------------------------------------
     var LEDGER = [
-      'Ana · Person · created Task #311',
-      'Agent-7 · Agent · sent Interaction (email)',
-      'Rules-bot · Automation · created Task #312',
-      'Ben · Person · edited Document "Spec"',
-      'ACME · Organization · paid Invoice INV-0042',
-      'Agent-7 · Agent · moved Deal → PROPOSAL',
-      'Ana · Person · granted Permission EDIT',
-      'Kim · Person · saved View "My week"'
+      ['09:02', 'p', 'Jo', 'created Role LEAD for Dana'],
+      ['09:10', 'p', 'Ravi', 'opened Deal GLOBEX · PRO'],
+      ['10:40', 'r', 'Note-taker', 'wrote Document "Meeting notes"'],
+      ['11:05', 'p', 'Dana', 'signed Subscription PRO'],
+      ['11:05', 'p', 'Omar', 'changed Role LEAD → CUSTOMER'],
+      ['11:06', 'p', 'Sam\'s rule', 'created 3 Tasks'],
+      ['11:30', 'p', 'Lee', 'granted Permission EDIT to Agent-7'],
+      ['12:15', 'r', 'Agent-7', 'closed Task "Import users"'],
+      ['09:00', 'p', 'Priya', 'issued Invoice INV-0042'],
+      ['09:41', 'o', 'Globex', 'paid Invoice INV-0042'],
+      ['14:20', 'p', 'Noor', 'saved View "Globex · open"']
     ];
-    function drawAudit(q) {
+    function drawArchive() {
+      var q = ROOMS[13];
       var x0 = q.x, y0 = q.y, w = q.w, h = q.h;
-      sign(x0 + w / 2, y0 + 14, 'AUDIT VAULT · append-only', 10, ENTITIES.AuditEvent.color);
+      sign(x0 + w / 2, y0 + 14, 'ARCHIVE', 10);
       lamp(x0 + 400, y0, 10); lamp(x0 + 800, y0, 10);
-      // archive shelves
       for (var s = 0; s < 2; s++) {
         var sy = y0 + 48 + s * 34;
         lw(1.2); line(x0 + 20, sy + 24, x0 + 240, sy + 24);
@@ -1761,7 +1974,7 @@
         lw(1.2); line(x0 + w - 240, sy + 24, x0 + w - 20, sy + 24);
         for (var c = 0; c < 9; c++) { lw(0.9); box(x0 + w - 236 + c * 24, sy + 2, 18, 22); }
       }
-      // ledger tape
+      // the tape
       var ty = y0 + 76, tx0 = x0 + 270, tx1 = x0 + w - 270;
       lw(1.4);
       circle(tx0 - 12, ty + 12, 14); circle(tx1 + 12, ty + 12, 14);
@@ -1769,73 +1982,81 @@
       box(tx0, ty, tx1 - tx0, 26);
       ctx.save();
       ctx.beginPath(); ctx.rect(tx0, ty, tx1 - tx0, 26); ctx.clip();
-      var entryW = 250, off = t * 24;
+      var entryW = 260, off = t * 22;
       var first = Math.floor(off / entryW);
+      var hit = null;
       for (var e = first; e < first + Math.ceil((tx1 - tx0) / entryW) + 2; e++) {
         var ex = tx1 - (e * entryW - off) - entryW;
+        var L = LEDGER[mod(e, LEDGER.length)];
         lw(0.7); line(ex, ty + 3, ex, ty + 23);
-        var mins = 14 + e;
-        var stamp = '09:' + (mins % 60 < 10 ? '0' : '') + (mins % 60);
-        text(stamp, ex + 8, ty + 13.5, 7, 'left', 800, MONO);
-        text(LEDGER[mod(e, LEDGER.length)], ex + 40, ty + 13.5, 7, 'left', 600, MONO);
+        text(L[0], ex + 6, ty + 13.5, 6.5, 'left', 800, MONO);
+        // who: a person, an agent or an organization, all Parties
+        var ix = ex + 38, iy = ty + 13;
+        lw(0.9);
+        if (L[1] === 'r') { box(ix - 3.5, iy - 3.5, 7, 7); ctx.fillStyle = ENTITIES.Agent.color; ctx.fillRect(ix - 2, iy - 1, 4, 1.6); }
+        else if (L[1] === 'o') { box(ix - 3.5, iy - 3, 7, 7); line(ix - 4.5, iy - 3, ix, iy - 6); line(ix, iy - 6, ix + 4.5, iy - 3); }
+        else { circle(ix, iy - 1.5, 2.4); line(ix - 3.5, iy + 3.5, ix + 3.5, iy + 3.5); }
+        text(L[2] + ' ' + L[3], ex + 46, ty + 13.5, 6.5, 'left', 600, MONO);
+        if (!hit && ex > tx0 + 120 && ex < tx1 - 300) hit = [ex, ix, iy, L];
       }
       ctx.restore();
-      // stamping head at the right end of the tape
       lw(1.4);
       box(tx1 - 40, ty - 34, 34, 24);
-      line(tx1 - 23, ty - 10, tx1 - 23, ty - 3 + (mod(t * 24, entryW) < 12 ? 3 : 0));
+      line(tx1 - 23, ty - 10, tx1 - 23, ty - 3 + (mod(t * 22, entryW) < 12 ? 3 : 0));
       text('LOG', tx1 - 23, ty - 22, 7, 'center', 800);
-      // a keeper with a lantern
-      person(x0 + w / 2, y0 + h - 6, { arm: 'hold', badge: ENTITIES.AuditEvent.color });
+      person(x0 + w / 2, y0 + h - 6, { arm: 'hold', badge: ENTITIES.Person.color });
       text('nothing is ever erased', x0 + w / 2 + 16, y0 + h - 30, 8, 'left', 700);
+      if (at(10) && hit) {
+        var who = { r: 'Agent', o: 'Organization', p: 'Person' }[hit[3][1]];
+        tag(hit[0] + 130, ty + 42, 'AuditEvent', hit[3][0]);
+        tag(hit[1], ty - 18, who, hit[3][2]);
+        DYN.performed = [hit[0] + 100, ty + 34, hit[1] + 12, ty - 12];
+      }
     }
 
-    // audit risers: slips falling from every floor into the vault
+    // audit pipes: a slip drops from every floor into the archive
     function drawRisers() {
-      var pipes = [[166, 1196 + 20, 300], [1634, 1196 + 20, 1500]];
+      var pipes = [[166, 1216, 300], [1634, 1216, 1500]];
       pipes.forEach(function (p) {
         var x = p[0];
-        ctx.beginPath();
-        ctx.moveTo(x, 330); ctx.lineTo(x, p[1]); ctx.lineTo(p[2], p[1]);
-        lw(9); ctx.strokeStyle = P.ink; ctx.stroke();
-        lw(6); ctx.strokeStyle = P.paper; ctx.stroke();
-        ctx.strokeStyle = P.ink;
+        pipePath([[x, 330], [x, p[1]], [p[2], p[1]]], 6);
         lw(1.1);
         [410, 630, 850, 1070].forEach(function (y) { line(x - 8, y, x + 8, y); line(x - 8, y + 4, x + 8, y + 4); });
+        var vert = p[1] - 330, horiz = Math.abs(p[2] - x);
         for (var k = 0; k < 5; k++) {
           var d = mod(t * 90 + k * 230 + x, 1150);
-          var px1, py1;
-          var vert = p[1] - 330;
-          if (d < vert) { px1 = x; py1 = 330 + d; } else { px1 = x + (p[2] > x ? 1 : -1) * (d - vert); py1 = p[1]; if (Math.abs(px1 - x) > Math.abs(p[2] - x)) continue; }
+          var q;
+          if (d < vert) q = [x, 330 + d];
+          else if (d - vert < horiz) q = [x + (p[2] > x ? 1 : -1) * (d - vert), p[1]];
+          else continue;
           ctx.fillStyle = ENTITIES.AuditEvent.color;
-          ctx.fillRect(px1 - 2.5, py1 - 2, 5, 4);
+          ctx.fillRect(q[0] - 2.5, q[1] - 2, 5, 4);
         }
       });
+      // the mail tube runs up the outside to Support
+      pipePath(MAILTUBE, 6);
     }
 
     function drawRooms() {
-      drawTube();
-      drawPartyHall(ROOMS[0]);
-      drawRoleDesk(ROOMS[1]);
-      drawTeamRoom(ROOMS[2]);
-      drawPermissions(ROOMS[3]);
-      drawProjects(ROOMS[4]);
-      drawTaskLine(ROOMS[5]);
-      drawAutomation(ROOMS[6]);
-      drawDocuments(ROOMS[7]);
-      drawProducts(ROOMS[8]);
-      drawDeals(ROOMS[9]);
-      drawInteractions(ROOMS[10]);
-      drawViews(ROOMS[11]);
-      drawSubscriptions(ROOMS[12]);
-      drawInvoicesAndPayments();
-      drawLobby(ROOMS[15]);
-      drawAudit(ROOMS[16]);
       drawRisers();
+      drawServerRoom();
+      drawEngineering();
+      drawIT();
+      drawStudio();
+      drawOps();
+      drawSupport();
+      drawSales();
+      drawMeeting();
+      drawContracts();
+      drawLobby();
+      drawMailroom();
+      drawFinance();
+      drawArchive();
+      drawLift(at(1) && ct >= 7.6 ? function (x, yb) { drawDana(x, yb, {}); } : null);
     }
 
     // =========================================================================
-    // Overlays: step arrows, focus highlight, ontology map
+    // Overlays: focus, relation arrows, the ontology map
     // =========================================================================
 
     function arrow(x1, y1, x2, y2, bend, color, label, k) {
@@ -1846,8 +2067,8 @@
       ctx.save();
       ctx.globalAlpha *= k;
       ctx.strokeStyle = color;
-      lw(2.2);
-      ctx.setLineDash([6, 4]);
+      lw(2);
+      ctx.setLineDash([5, 4]);
       ctx.lineDashOffset = -t * 18;
       ctx.beginPath(); ctx.moveTo(x1, y1); ctx.quadraticCurveTo(cx, cy, x2, y2); ctx.stroke();
       ctx.setLineDash([]);
@@ -1855,22 +2076,19 @@
       ctx.fillStyle = color;
       ctx.beginPath();
       ctx.moveTo(x2, y2);
-      ctx.lineTo(x2 - Math.cos(ang - 0.42) * 9, y2 - Math.sin(ang - 0.42) * 9);
-      ctx.lineTo(x2 - Math.cos(ang + 0.42) * 9, y2 - Math.sin(ang + 0.42) * 9);
+      ctx.lineTo(x2 - Math.cos(ang - 0.42) * 8, y2 - Math.sin(ang - 0.42) * 8);
+      ctx.lineTo(x2 - Math.cos(ang + 0.42) * 8, y2 - Math.sin(ang + 0.42) * 8);
       ctx.fill();
-      circle(x1, y1, 2.6, color);
-      if (label) {
-        var lx = 0.25 * x1 + 0.5 * cx + 0.25 * x2, ly = 0.25 * y1 + 0.5 * cy + 0.25 * y2;
-        pill(lx, ly, label, color);
-      }
+      circle(x1, y1, 2.4, color);
+      if (label) pill(0.25 * x1 + 0.5 * cx + 0.25 * x2, 0.25 * y1 + 0.5 * cy + 0.25 * y2, label, color);
       ctx.restore();
     }
     function pill(x, y, label, color, size) {
-      size = size || 8;
+      size = size || 7.5;
       var w = textW(label, size, 800) + 10, h = size + 6;
       ctx.fillStyle = P.paper;
       ctx.strokeStyle = color;
-      lw(1.4);
+      lw(1.3);
       ctx.beginPath();
       if (ctx.roundRect) ctx.roundRect(x - w / 2, y - h / 2, w, h, h / 2); else ctx.rect(x - w / 2, y - h / 2, w, h);
       ctx.fill(); ctx.stroke();
@@ -1884,7 +2102,6 @@
     function drawFocus() {
       var s = TOUR[step];
       if (s.map || !s.ents.length) return;
-      // dim everything outside the stop's rect a little, tint its rooms
       var r = s.rect;
       ctx.save();
       ctx.globalAlpha = 0.5 * focusK;
@@ -1894,62 +2111,50 @@
       ctx.rect(r[0] + r[2], r[1], -r[2], r[3]);
       ctx.fill('evenodd');
       ctx.restore();
-      ROOMS.forEach(function (q) {
-        if (q.step !== step) return;
-        var col = q.ent ? ENTITIES[q.ent].color : P.ink;
-        ctx.save();
-        ctx.globalAlpha = focusK;
-        ctx.strokeStyle = col;
-        lw(3);
-        ctx.strokeRect(q.x + 7, q.y + 7, q.w - 14, q.h - 14);
-        ctx.restore();
-      });
+    }
+    function drawStepArrows() {
+      var s = TOUR[step];
       s.rels.forEach(function (rel) {
         var p = rel.dyn ? DYN[rel.dyn] : rel.pts;
         if (!p) return;
-        arrow(p[0], p[1], p[2], p[3], rel.bend, ENTITIES[rel.from].color, rel.label, focusK);
+        arrow(p[0], p[1], p[2], p[3], rel.bend == null ? null : rel.bend, ENTITIES[rel.from].color, rel.label, focusK);
       });
     }
 
     function drawMap(k) {
       if (k <= 0.001) return;
       ctx.save();
-      ctx.globalAlpha = 0.72 * k;
+      ctx.globalAlpha = 0.74 * k;
       ctx.fillStyle = P.paper;
       ctx.fillRect(-500, -500, W + 1000, H + 1000);
       ctx.restore();
       ctx.save();
       ctx.globalAlpha = k;
-      // edges
+      function bendFor(i, d) { return (i % 2 ? 1 : -1) * Math.min(60, d * 0.12); }
       RELATIONS.forEach(function (r, i) {
         var a = ANCHORS[r[0]], b = ANCHORS[r[2]];
         var col = ENTITIES[r[0]].color;
         if (r[0] === r[2]) {
           ctx.strokeStyle = col; lw(2);
           ctx.beginPath(); ctx.arc(a[0] + 30, a[1] - 26, 22, 0, TAU); ctx.stroke();
-          pill(a[0] + 56, a[1] - 46, r[1], col, 8);
           return;
         }
         var dx = b[0] - a[0], dy = b[1] - a[1], d = Math.hypot(dx, dy);
-        var sx = a[0] + dx / d * 26, sy = a[1] + dy / d * 26, ex = b[0] - dx / d * 28, ey = b[1] - dy / d * 28;
-        arrow(sx, sy, ex, ey, (i % 2 ? 1 : -1) * Math.min(60, d * 0.12), col, null, 1);
+        arrow(a[0] + dx / d * 26, a[1] + dy / d * 26, b[0] - dx / d * 30, b[1] - dy / d * 30, bendFor(i, d), col, null, 1);
       });
-      // labels after edges so they sit on top
       RELATIONS.forEach(function (r, i) {
-        if (r[0] === r[2]) return;
         var a = ANCHORS[r[0]], b = ANCHORS[r[2]];
-        var dx = b[0] - a[0], dy = b[1] - a[1], d = Math.hypot(dx, dy);
-        var bend = (i % 2 ? 1 : -1) * Math.min(60, d * 0.12);
-        var mx = (a[0] + b[0]) / 2 - dy / d * bend * 0.5, my = (a[1] + b[1]) / 2 + dx / d * bend * 0.5;
-        pill(mx, my, r[1], ENTITIES[r[0]].color, 8);
+        if (r[0] === r[2]) { pill(a[0] + 56, a[1] - 46, r[1], ENTITIES[r[0]].color, 8); return; }
+        var dx = b[0] - a[0], dy = b[1] - a[1], d = Math.hypot(dx, dy), bend = bendFor(i, d);
+        pill((a[0] + b[0]) / 2 - dy / d * bend * 0.5, (a[1] + b[1]) / 2 + dx / d * bend * 0.5, r[1], ENTITIES[r[0]].color, 8);
       });
-      // subclass links
       ['Person', 'Organization', 'Agent'].forEach(function (n) {
         var a = ANCHORS[n], b = ANCHORS.Party;
+        var dx = b[0] - a[0], dy = b[1] - a[1], d = Math.hypot(dx, dy);
         ctx.strokeStyle = P.ink; lw(1.6);
-        ctx.setLineDash([3, 3]); line(a[0], a[1] - 24, b[0] + (a[0] - b[0]) * 0.3, b[1] + 26); ctx.setLineDash([]);
+        ctx.setLineDash([3, 3]); line(a[0] + dx / d * 26, a[1] + dy / d * 26, b[0] - dx / d * 34, b[1] - dy / d * 34); ctx.setLineDash([]);
+        pill(a[0] + dx * 0.3, a[1] + dy * 0.3, 'is a', P.ink, 7);
       });
-      // nodes
       Object.keys(ANCHORS).forEach(function (n) {
         var p = ANCHORS[n], e = ENTITIES[n];
         var R = n === 'Party' ? 30 : 24;
@@ -1981,12 +2186,12 @@
       var dt = Math.min(0.05, (now - last) / 1000 || 0);
       last = now;
       t += dt * (reduced ? 0.35 : 1);
+      ct += dt;
 
       if (playing) {
         stepClock += dt;
         var dur = stepDuration(step);
-        var bar = dotEls[step].firstChild;
-        bar.style.width = clamp(stepClock / dur, 0, 1) * 100 + '%';
+        dotEls[step].firstChild.style.width = clamp(stepClock / dur, 0, 1) * 100 + '%';
         if (stepClock >= dur) {
           if (step === TOUR.length - 1) { playing = false; renderCard(); }
           else go(step + 1);
@@ -1996,7 +2201,6 @@
       if (!free) {
         var f = targetCam();
         var k = reduced ? 1 : 1 - Math.exp(-dt * 2.2);
-        // zoom in log space so wide <-> tight moves feel even
         cam.s = Math.exp(lerp(Math.log(cam.s), Math.log(f.s), k));
         cam.x = lerp(cam.x, f.x, k);
         cam.y = lerp(cam.y, f.y, k);
@@ -2007,6 +2211,7 @@
 
       readPalette();
       px = 1 / cam.s;
+      TAGS = [];
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.fillStyle = P.paper;
       ctx.fillRect(0, 0, vw, vh);
@@ -2016,6 +2221,7 @@
       drawShell();
       drawRooms();
       drawFocus();
+      if (!TOUR[step].map) { drawStepArrows(); drawTags(); }
       drawMap(mapK);
       if (hoverRoom && free) {
         ctx.save(); ctx.strokeStyle = P.ink; lw(2); ctx.setLineDash([5, 4]);
@@ -2028,7 +2234,6 @@
     renderCard();
     layout();
     snapCamera();
-    // open on the whole building, slightly pulled back
     cam.s *= 0.9;
     requestAnimationFrame(frame);
 

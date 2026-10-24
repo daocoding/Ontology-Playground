@@ -4,17 +4,30 @@ A self-contained, plain-JavaScript animation that explains the
 [Elements of Software](https://github.com/microsoft/Ontology-Playground/pull/86)
 community ontology to people who have never read an ontology.
 
-The scene is a hand-drawn cutaway of a software company. Each entity type has
-its own room, and the relationships play out as things you can watch:
+The scene is a hand-drawn cutaway of an ordinary software company, Acme
+Cloud. Its rooms are places where work happens: reception, sales, a meeting
+room, the product studio, operations, engineering, IT, support, contracts,
+finance, the mailroom, a server room and an archive. People and agents work in
+every room all the time.
 
-- task cards are stamped with an assignee as they ride a conveyor
-- a deal crate keeps its identity while its `stage` label changes at each gate
-- the subscription wheel prints an invoice on every turn, and a payment settles it
-- a visitor's badge changes from Lead to Customer to Vendor, but the visitor stays the same
+The tour follows one customer, Dana from Globex, through a day there:
 
-A camera tour visits each room with a caption that names the entity types and
-relationships in view. The last stop fades the building into the ontology
-graph itself.
+1. Dana arrives, and reception prints a LEAD badge.
+2. Sales opens a deal folder and moves it across the pipeline board.
+3. Dana, a sales rep and a note-taking agent meet.
+4. Dana signs, the badge becomes CUSTOMER, and a subscription card drops to Finance.
+5. A rule in Operations creates the onboarding tasks.
+6. Engineering puts them on the project board.
+7. IT hands the agent a key.
+8. At month end, an invoice goes out and a payment comes back.
+9. Dana emails Support, and a view is saved for Globex.
+10. The archive tape has recorded every step.
+
+As things happen, small tags name what the software keeps track of, such as
+`Person · Dana`, `Deal · stage: PROPOSAL` or `Permission · EDIT`, and dashed
+arrows show the relationships between them. The caption tells the story first,
+then explains it under **In the model**. The last stop fades the building into
+the ontology graph itself.
 
 Everything is drawn at runtime with the Canvas 2D API. There are no images,
 fonts, libraries or network requests.
@@ -54,4 +67,6 @@ Options, as data attributes or through `ElementsOfSoftware.mount(el, options)`:
 `ENTITIES` and `RELATIONS` near the top of the script mirror
 `catalogue/community/daocoding/elements-of-software/ontology.rdf`. The last
 stop and the Map overlay are drawn from these two lists. If the ontology
-changes, update the lists, then the matching room and `TOUR` entry.
+changes, update the lists, then the `TOUR` entry and the room function that
+plays out that part of the story (each room's `draw…` function adds its own
+tags and arrows when its stop is active).
